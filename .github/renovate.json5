@@ -2,6 +2,65 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "github>trueforge-org/renovate-config"
+    "github>trueforge-org/truecharts//.github/renovate/main.json5"
+  ],
+  "ignorePresets": [
+    "github>trueforge-org/truecharts//.github/renovate/basics/labels.json5"
+  ],
+  "assignees": ["kleinarne"],
+  "flux": {
+    "fileMatch": ["/\\.yaml(?:\\.j2)?$/"]
+  },
+  "packageRules": [
+    {
+      "description": ["Keep major updates manual, regardless of package."],
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["type/major"],
+      "automerge": false
+    },
+    {
+      "description": ["Label minor updates like TrueCharts, without broad automerge."],
+      "matchUpdateTypes": ["minor"],
+      "addLabels": ["type/minor"]
+    },
+    {
+      "description": ["Label patch updates like TrueCharts, without broad automerge."],
+      "matchUpdateTypes": ["patch"],
+      "addLabels": ["type/patch"]
+    },
+    {
+      "description": ["Label digest updates like TrueCharts, without broad automerge."],
+      "matchUpdateTypes": ["digest"],
+      "addLabels": ["type/digest"]
+    },
+    {
+      "description": ["Label Helm updates like TrueCharts."],
+      "matchManagers": ["helmv3"],
+      "addLabels": ["renovate/helm"]
+    },
+    {
+      "description": ["Automerge minor updates, but exclude infrastructure."],
+      "matchUpdateTypes": ["minor"],
+      "matchPackageNames": [
+        "!/siderolabs/",
+        "!/flux-operator/",
+        "!/flux-instance/",
+        "!/longhorn/",
+        "!/cilium/"
+      ],
+      "automerge": true,
+      "addLabels": ["automerge"]
+    },
+    {
+      "description": ["Automerge patch updates, but exclude infrastructure."],
+      "matchUpdateTypes": ["patch"],
+      "matchPackageNames": [
+        "!/siderolabs/",
+        "!/flux-operator/",
+        "!/flux-instance/"
+      ],
+      "automerge": true,
+      "addLabels": ["automerge"]
+    }
   ]
 }
