@@ -62,6 +62,17 @@ spec:
           credentials: garage
     persistence:
       data:
+        volsync:
+          - name: backup
+            type: restic
+            credentials: garage
+            dest:
+              enabled: true
+            src:
+              enabled: true
+              trigger:
+                schedule: 48 0 * * *
+      media:
         type: nfs
         server: ${TRUENAS_IP}
         path: ${PAPERLESS_NFS_PATH}
@@ -73,17 +84,6 @@ spec:
               enabled: true
             src:
               enabled: false
-              trigger:
-                schedule: 48 0 * * *
-      media:
-        volsync:
-          - name: backup
-            type: restic
-            credentials: garage
-            dest:
-              enabled: true
-            src:
-              enabled: true
               trigger:
                 schedule: 50 0 * * *
       consume:
