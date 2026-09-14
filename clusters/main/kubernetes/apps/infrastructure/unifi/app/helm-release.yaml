@@ -33,6 +33,25 @@ spec:
     TZ: Europe/Berlin
     global:
       stopAll: false
+    persistence:
+      data:
+        volsync:
+          - name: recovery
+            type: restic
+            credentials: garage-recovery
+            dest:
+              enabled: true
+            src:
+              enabled: false
+          - name: backup
+            type: restic
+            credentials: garage
+            dest:
+              enabled: false
+            src:
+              enabled: true
+              trigger:
+                schedule: 32 0 * * *
     service:
       comm:
         type: LoadBalancer
@@ -77,4 +96,11 @@ spec:
         bucket: ${GARAGE_S3_BUCKET}
         accessKey: ${GARAGE_S3_ACCESSKEY}
         secretKey: ${GARAGE_S3_SECRETKEY}
+        encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
+      garage-recovery:
+        type: s3
+        url: ${GARAGE_S3_URL}
+        bucket: ${GARAGE_S3_BUCKET}-redir
+        accessKey: ${GARAGE_RECOVERY_S3_ACCESSKEY}
+        secretKey: ${GARAGE_RECOVERY_S3_SECRETKEY}
         encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
