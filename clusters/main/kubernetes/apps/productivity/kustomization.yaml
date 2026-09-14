@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - nextcloud/ks.yaml
   - immich/ks.yaml
+  - vaultwarden/ks.yaml
