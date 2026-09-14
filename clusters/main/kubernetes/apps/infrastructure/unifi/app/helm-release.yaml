@@ -36,22 +36,22 @@ spec:
     persistence:
       data:
         volsync:
-          - name: backup
-            type: restic
-            credentials: garage-recovery
-            dest:
-              enabled: true
-            src:
-              enabled: false
 #          - name: backup
 #            type: restic
-#            credentials: garage
+#            credentials: garage-recovery
 #            dest:
-#              enabled: false
-#            src:
 #              enabled: true
-#              trigger:
-#                schedule: 32 0 * * *
+#            src:
+#              enabled: false
+          - name: backup
+            type: restic
+            credentials: garage
+            dest:
+              enabled: false
+            src:
+              enabled: true
+              trigger:
+                schedule: 32 0 * * *
     service:
       comm:
         type: LoadBalancer
