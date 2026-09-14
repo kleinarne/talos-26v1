@@ -32,7 +32,7 @@ spec:
   values:
     TZ: Europe/Berlin
     global:
-      stopAll: false
+      stopAll: true
     nextcloud:
       general:
         run_optimize: true
