@@ -1,0 +1,113 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: paperless-ngx
+  namespace: paperless-ngx
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: paperless-ngx
+      version: 15.11.0
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    TZ: Europe/Berlin
+    global:
+      stopAll: false
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                PAPERLESS_CONSUMER_POLLING_INTERVAL: 10
+                PAPERLESS_CONSUMER_STABILITY_DELAY: 5
+                PAPERLESS_URL: https://paperless.${DOMAIN_0}
+                PAPERLESS_OCR_LANGUAGE: "eng"
+                PAPERLESS_OCR_LANGUAGES: "eng deu"
+    cnpg:
+      main:
+        mode: recovery
+        password: ${PAPERLESS_CNPG_PASSWORD}
+        backups:
+          enabled: true
+          credentials: garage
+          scheduledBackups:
+            - name: daily-backup
+              schedule: "0 46 0 * * *"
+              backupOwnerReference: self
+              immediate: true
+              suspend: false
+        recovery:
+          enabled: true
+          credentials: garage
+    persistence:
+      data:
+        type: nfs
+        server: ${TRUENAS_IP}
+        path: ${PAPERLESS_NFS_PATH}
+        volsync:
+          - name: backup
+            type: restic
+            credentials: garage
+            dest:
+              enabled: true
+            src:
+              enabled: false
+              trigger:
+                schedule: 48 0 * * *
+      media:
+        volsync:
+          - name: backup
+            type: restic
+            credentials: garage
+            dest:
+              enabled: true
+            src:
+              enabled: true
+              trigger:
+                schedule: 50 0 * * *
+      consume:
+        type: nfs
+        server: ${TRUENAS_IP}
+        path: ${PAPERLESS_WATCHDIR_NFS_PATH}
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: external
+        hosts:
+          - host: paperless.${DOMAIN_0}
+            paths:
+              - path: /
+                pathType: Prefix
+        integrations:
+          certManager:
+            certificateIssuer: domain-0-le-prod
+            enabled: true
+    credentials:
+      garage:
+        type: s3
+        url: ${GARAGE_S3_URL}
+        bucket: ${GARAGE_S3_BUCKET}
+        accessKey: ${GARAGE_S3_ACCESSKEY}
+        secretKey: ${GARAGE_S3_SECRETKEY}
+        encrKey: ${GARAGE_S3_ENCRYPTIONKEY}

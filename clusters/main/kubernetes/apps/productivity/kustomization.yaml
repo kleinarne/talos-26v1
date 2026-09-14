@@ -4,3 +4,6 @@ resources:
   - nextcloud/ks.yaml
   - immich/ks.yaml
   - vaultwarden/ks.yaml
+  - actualserver/ks.yaml
+  - code-server/ks.yaml
+  - paperless-ngx/ks.yaml
