@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: headlamp
-      version: 0.43.0
+      version: 0.45.0
       sourceRef:
         kind: HelmRepository
         name: home-ops-mirror
@@ -50,7 +50,7 @@ spec:
             value: "6443"
           - name: KUBECONFIG
             value: /home/headlamp/.config/Headlamp/kubeconfigs/config
-        image: alpine/kubectl:1.36.2
+        image: alpine/kubectl:1.36.4
         name: create-kubeconfig
         securityContext:
           capabilities:
