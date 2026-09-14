@@ -2,14 +2,14 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: nextcloud
-  namespace: nextcloud
+  name: vaultwarden
+  namespace: vaultwarden
 spec:
   interval: 15m
   chart:
     spec:
-      chart: nextcloud
-      version: 46.10.2
+      chart: vaultwarden
+      version: 30.12.1
       sourceRef:
         kind: HelmRepository
         name: truecharts
@@ -32,30 +32,35 @@ spec:
   values:
     TZ: Europe/Berlin
     global:
-      stopAll: true
-    nextcloud:
-      general:
-        run_optimize: true
-        default_phone_region: DE
-        accessIP: ${NGINX_INTERNAL_IP}
-      collabora:
+      stopAll: false
+    vaultwarden:
+      allowSignups: false
+      smtp:
         enabled: true
-        username: ${NEXTCLOUD_COLLABORA_USERNAME}
-        password: ${NEXTCLOUD_COLLABORA_PASSWORD}
-        dictionaries:
-          - de_DE
-          - en_GB
-          - en_US
+        host: ${SCALEWAY_SERVER}
+        from: ${SCALEWAY_SENDER_EMAIL}
+        fromName: Vaultwarden Admin (at ${DOMAIN_0})
+        security: force_tls
+        port: 465
+        authMechanism: Login
+        heloName: ""
+        timeout: 15
+        user: ${SCALEWAY_USERNAME}
+        password: ${SCALEWAY_PASSWORD}
+      push:
+        enabled: true
+        installationId: ${VAULTWARDEN_PUSHID}
+        installationKey: ${VAULTWARDEN_PUSHKEY}
     cnpg:
       main:
         mode: recovery
-        password: ${NEXTCLOUD_CNPG_PASSWORD}
+        password: ${VAULTWARDEN_CNPG_PASSWORD}
         backups:
           enabled: true
           credentials: garage
           scheduledBackups:
             - name: daily-backup
-              schedule: "0 38 0 * * *"
+              schedule: "0 25 0 * * *"
               backupOwnerReference: self
               immediate: true
               suspend: false
@@ -63,22 +68,7 @@ spec:
           enabled: true
           credentials: garage
     persistence:
-      config:
-        volsync:
-          - name: backup
-            type: restic
-            credentials: garage
-            dest:
-              enabled: true
-            src:
-              enabled: true
-              trigger:
-                schedule: 41 0 * * *
       data:
-        type: nfs
-        server: ${TRUENAS_IP}
-        path: ${NEXTCLOUD_NFS_PATH}
-      html:
         volsync:
           - name: backup
             type: restic
@@ -88,13 +78,13 @@ spec:
             src:
               enabled: true
               trigger:
-                schedule: 43 0 * * *
+                schedule: 27 0 * * *
     ingress:
       main:
         enabled: true
-        ingressClassName: internal
+        ingressClassName: external
         hosts:
-          - host: nextcloud.${DOMAIN_0}
+          - host: vw.${DOMAIN_0}
             paths:
               - path: /
                 pathType: Prefix
