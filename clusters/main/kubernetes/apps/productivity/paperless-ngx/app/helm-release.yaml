@@ -77,9 +77,9 @@ spec:
               trigger:
                 schedule: 48 0 * * *
       media:
-        type: nfs
-        server: ${TRUENAS_IP}
-        path: ${PAPERLESS_NFS_PATH}
+#        type: nfs
+#        server: ${TRUENAS_IP}
+#        path: ${PAPERLESS_NFS_PATH}
         volsync:
           - name: backup
             type: restic
