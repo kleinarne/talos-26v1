@@ -86,8 +86,6 @@ spec:
             credentials: garage
             dest:
               enabled: true
-              trigger:
-                manual: restore-2026-09-15--16-04
             src:
               # don't enable before without fixing the credentials
               # (regular accesskey and bucket)
