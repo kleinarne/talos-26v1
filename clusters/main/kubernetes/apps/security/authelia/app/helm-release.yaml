@@ -47,7 +47,7 @@ spec:
           password: ${AUTHELIA_LDAP_BIND_PASSWORD}
       notifier:
         smtp:
-          address: submission://${SCALEWAY_SERVER}:465
+          address: smtp://${SCALEWAY_SERVER}:465
           username: ${SCALEWAY_USERNAME}
           password: ${SCALEWAY_PASSWORD}
           sender: ${SCALEWAY_SENDER_EMAIL}
