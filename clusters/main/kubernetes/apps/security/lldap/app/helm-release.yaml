@@ -1,0 +1,93 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: lldap
+  namespace: lldap
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: lldap
+      version: 9.10.0
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    TZ: Europe/Berlin
+    global:
+      stopAll: false
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                LLDAP_LDAP_BASE_DN: dc=arneklein,dc=net
+                LLDAP_LDAP_USER_DN: admin
+                LLDAP_LDAP_USER_EMAIL: ${DOMAIN_0_EMAIL}
+                LLDAP_LDAP_USER_PASS: ${LLDAP_PASS}
+                LLDAP_JWT_SECRET: ${LLDAP_JWT}
+    persistence:
+      data:
+        volsync:
+          - name: backup
+            type: restic
+            credentials: garage
+            dest:
+              enabled: true
+            src:
+              enabled: true
+              trigger:
+                schedule: 55 0 * * *
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: internal
+        hosts:
+          - host: lldap.${DOMAIN_0}
+            paths:
+              - path: /
+                pathType: Prefix
+        integrations:
+          certManager:
+            certificateIssuer: domain-0-le-prod
+            enabled: true
+    cnpg:
+      main:
+        enabled: true
+        backups:
+          enabled: true
+          credentials: garage
+          scheduledBackups:
+            - name: daily-backup
+              schedule: "0 58 0 * * *"
+              backupOwnerReference: self
+              immediate: true
+              suspend: false
+        recovery:
+          enabled: false
+    credentials:
+      garage:
+        type: s3
+        url: ${GARAGE_S3_URL}
+        bucket: ${GARAGE_S3_BUCKET}
+        accessKey: ${GARAGE_S3_ACCESSKEY}
+        secretKey: ${GARAGE_S3_SECRETKEY}
+        encrKey: ${GARAGE_S3_ENCRYPTIONKEY}

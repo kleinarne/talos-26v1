@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  path: clusters/main/kubernetes/testing/librespeed/app
+  path: clusters/main/kubernetes/apps/testing/librespeed/app
   prune: true
   sourceRef:
     kind: GitRepository
