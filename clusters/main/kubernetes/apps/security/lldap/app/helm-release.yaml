@@ -44,6 +44,13 @@ spec:
                 LLDAP_LDAP_USER_EMAIL: ${DOMAIN_0_EMAIL}
                 LLDAP_LDAP_USER_PASS: ${LLDAP_PASS}
                 LLDAP_JWT_SECRET: ${LLDAP_JWT}
+                LLDAP_SMTP_OPTIONS__ENABLE_PASSWORD_RESET: true
+                LLDAP_SMTP_OPTIONS__SERVER: ${SCALEWAY_SERVER}
+                LLDAP_SMTP_OPTIONS__SMTP_ENCRYPTION: "STARTTLS"
+                LLDAP_SMTP_OPTIONS__USER: ${SCALEWAY_USERNAME}
+                LLDAP_SMTP_OPTIONS__PASSWORD: ${SCALEWAY_PASSWORD}
+                LLDAP_SMTP_OPTIONS__FROM: "LLDAP Admin <${SCALEWAY_SENDER_EMAIL}>"
+                LLDAP_SMTP_OPTIONS__REPLY_TO: "Do not reply <${SCALEWAY_SENDER_EMAIL}>"
     persistence:
       data:
         volsync:
