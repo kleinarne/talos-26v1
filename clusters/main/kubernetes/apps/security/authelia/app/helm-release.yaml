@@ -49,7 +49,7 @@ spec:
         oidc:
           enabled: true
           clients:
-            - id: paperless-ngx
+            - id: ${PAPERLESS_OIDC_CLIENT_ID}
               description: Paperless-ngx OIDC Client
               secret: ${PAPERLESS_OIDC_CLIENT_SECRET}
               public: false
