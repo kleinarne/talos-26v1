@@ -115,6 +115,6 @@ spec:
         type: s3
         url: ${GARAGE_S3_URL}
         bucket: ${GARAGE_S3_BUCKET}
-        accessKey: ${GARAGE_RECOVERY_S3_ACCESSKEY}
-        secretKey: ${GARAGE_RECOVERY_S3_SECRETKEY}
+        accessKey: ${GARAGE_S3_ACCESSKEY}
+        secretKey: ${GARAGE_S3_SECRETKEY}
         encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
