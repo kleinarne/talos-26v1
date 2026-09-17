@@ -54,9 +54,7 @@ spec:
         mode: recovery
         password: ${PAPERLESS_CNPG_PASSWORD}
         backups:
-          # don't enable before without fixing the credentials
-          # (regular accesskey and bucket)
-          enabled: false
+          enabled: true
           credentials: garage
           scheduledBackups:
             - name: daily-backup
@@ -76,9 +74,7 @@ spec:
             dest:
               enabled: true
             src:
-              # don't enable before without fixing the credentials
-              # (regular accesskey and bucket)
-              enabled: false
+              enabled: true
               trigger:
                 schedule: 48 0 * * *
       media:
@@ -92,9 +88,7 @@ spec:
             dest:
               enabled: true
             src:
-              # don't enable before without fixing the credentials
-              # (regular accesskey and bucket)
-              enabled: false
+              enabled: true
               trigger:
                 schedule: 50 0 * * *
       consume:
@@ -120,7 +114,7 @@ spec:
       garage:
         type: s3
         url: ${GARAGE_S3_URL}
-        bucket: ${GARAGE_S3_BUCKET}-redir
+        bucket: ${GARAGE_S3_BUCKET}
         accessKey: ${GARAGE_RECOVERY_S3_ACCESSKEY}
         secretKey: ${GARAGE_RECOVERY_S3_SECRETKEY}
         encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
