@@ -32,7 +32,7 @@ spec:
   values:
     TZ: Europe/Berlin
     global:
-      stopAll: true
+      stopAll: false
     workload:
       main:
         podSpec:
