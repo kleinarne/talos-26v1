@@ -1,0 +1,29 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/core/configmap_v1.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paperless-configfile
+  namespace: paperless-ngx
+global:
+  domain: "${DOMAIN_0}"  # Flux still substitutes this
+
+authelia:
+  clientId: "${AUTHELIA_OIDC_CLIENT_ID}"
+  clientSecret: "${AUTHELIA_OIDC_CLIENT_SECRET}"
+
+paperless:
+  socialProviders: |
+    {
+      "openid_connect": {
+        "APPS": [{
+          "provider_id": "authelia",
+          "name": "Authelia",
+          "client_id": "{{ .Values.authelia.clientId }}",
+          "secret": "{{ .Values.authelia.clientSecret }}",
+          "settings": {
+            "server_url": "https://auth.{{ .Values.global.domain }}"
+          }
+        }]
+      }
+    }
