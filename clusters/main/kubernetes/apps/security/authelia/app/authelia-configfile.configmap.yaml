@@ -48,8 +48,6 @@ data:
             rules:
               - policy: 'one_factor'
                 subject: 'group:apps'
-                domain:
-                  - 'paperless.${DOMAIN_0}'
         clients:
           - client_name: 'Paperless'
             client_id: {{ secret "/config/secret/clients_paperless_client_id" }}
