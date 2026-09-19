@@ -45,7 +45,7 @@ spec:
                 PAPERLESS_OCR_LANGUAGE: "eng"
                 PAPERLESS_OCR_LANGUAGES: "eng deu"
                 # django-allauth / Authelia OIDC
-                PAPERLESS_APPS: "allauth.socialaccount.providers.openid_connect"
+                PAPERLESS_APPS: 'allauth.socialaccount.providers.openid_connect'
                 PAPERLESS_SOCIAL_AUTO_SIGNUP: true
                 PAPERLESS_SOCIALACCOUNT_PROVIDERS: ${PAPERLESS_SOCIALACCOUNT_PROVIDERS}
                 PAPERLESS_DISABLE_REGULAR_LOGIN: true
