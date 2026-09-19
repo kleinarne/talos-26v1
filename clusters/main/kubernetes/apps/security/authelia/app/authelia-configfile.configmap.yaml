@@ -1,0 +1,75 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/core/configmap_v1.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authelia-configfile
+  namespace: authelia
+data:
+  configuration.yaml: |
+    session:
+      cookies:
+        - domain: ${DOMAIN_0}
+          authelia_url: https://auth.${DOMAIN_0}
+    authentication_backend:
+      ldap:
+        implementation: lldap
+        address: ldap://lldap-ldap.lldap.svc.cluster.local:3890
+        base_dn: dc=${AUTHELIA_DC},dc=${AUTHELIA_DN}
+        user: uid=manager,ou=people,dc=${AUTHELIA_DC},dc=${AUTHELIA_DN}
+        password: ${AUTHELIA_LDAP_BIND_PASSWORD}
+    notifier:
+      smtp:
+        address: smtp://${SCALEWAY_SERVER}:587
+        username: ${SCALEWAY_USERNAME}
+        password: ${SCALEWAY_PASSWORD}
+        sender: ${SCALEWAY_SENDER_EMAIL}
+        tls:
+          server_name: ${SCALEWAY_SERVER}
+          minimum_version: TLS1.2
+    access_control:
+      default_policy: deny
+      rules:
+        - domain:
+            - '*.${DOMAIN_0}'
+            - ${DOMAIN_0}
+          policy: one_factor
+          subject:
+            - group:admin
+    identity_providers:
+      oidc:
+        hmac_secret: {{ secret "/config/secret/hmac_secret" }}
+        jwks:
+          - key: |
+              {{ secret "/config/secret/jwks_key.pem" | mindent 10 "|" | msquote }}
+        authorization_policies:
+          apps:
+            default_policy: 'deny'
+            rules:
+              - policy: 'one_factor'
+                subject: 'group:apps'
+                domain:
+                  - 'paperless.${DOMAIN_0}''
+                
+        clients:
+          - client_name: 'Paperless'
+            client_id: {{ secret "/config/secret/clients_grafana_client_id" }}
+            client_secret: {{ secret "/config/secret/clients_grafana_client_secret" }}
+            public: false
+            authorization_policy: 'apps'
+            require_pkce: true
+            pkce_challenge_method: 'S256'
+            redirect_uris:
+              - 'https://paperless.${DOMAIN_0}/login/generic_oauth'
+            scopes:
+              - 'openid'
+              - 'profile'
+              - 'groups'
+              - 'email'
+            response_types:
+              - 'code'
+            grant_types:
+              - 'authorization_code'
+            access_token_signed_response_alg: 'none'
+            userinfo_signed_response_alg: 'none'
+            token_endpoint_auth_method: 'client_secret_basic'
