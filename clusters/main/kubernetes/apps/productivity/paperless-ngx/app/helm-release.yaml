@@ -47,8 +47,7 @@ spec:
                 # django-allauth / Authelia OIDC
                 PAPERLESS_APPS: 'allauth.socialaccount.providers.openid_connect'
                 PAPERLESS_SOCIAL_AUTO_SIGNUP: true
-                # PAPERLESS_SOCIALACCOUNT_PROVIDERS: ${PAPERLESS_SOCIALACCOUNT_PROVIDERS}
-                PAPERLESS_SOCIALACCOUNT_PROVIDERS: {{ secret "/config/secret/SOCIALACCOUNT_PROVIDERS" | toJson | quote }}
+                PAPERLESS_SOCIALACCOUNT_PROVIDERS: ${PAPERLESS_SOCIALACCOUNT_PROVIDERS}
                 PAPERLESS_DISABLE_REGULAR_LOGIN: true
     cnpg:
       main:
@@ -96,13 +95,6 @@ spec:
         type: nfs
         server: ${TRUENAS_IP}
         path: ${PAPERLESS_WATCHDIR_NFS_PATH}
-      secrets:
-        enabled: true
-        type: secret
-        objectName: paperless-oidc-secret
-        expandObjectName: false
-        mountPath: /config/secret
-        readOnly: true
     ingress:
       main:
         enabled: true
