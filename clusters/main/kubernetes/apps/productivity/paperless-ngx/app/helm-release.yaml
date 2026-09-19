@@ -51,6 +51,7 @@ spec:
                   secretKeyRef: 
                     name: paperless-oidc-secret
                     key: socialaccount_providers
+                    expandObjectName: false
                 PAPERLESS_DISABLE_REGULAR_LOGIN: true
     cnpg:
       main:
