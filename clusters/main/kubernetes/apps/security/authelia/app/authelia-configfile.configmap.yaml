@@ -52,8 +52,8 @@ data:
                   - 'paperless.${DOMAIN_0}'
         clients:
           - client_name: 'Paperless'
-            client_id: {{ secret "/config/secret/clients_grafana_client_id" }}
-            client_secret: {{ secret "/config/secret/clients_grafana_client_secret" }}
+            client_id: {{ secret "/config/secret/clients_paperless_client_id" }}
+            client_secret: {{ secret "/config/secret/clients_paperless_client_secret" }}
             public: false
             authorization_policy: 'apps'
             require_pkce: true
