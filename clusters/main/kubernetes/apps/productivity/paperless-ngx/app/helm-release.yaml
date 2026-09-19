@@ -47,11 +47,7 @@ spec:
                 # django-allauth / Authelia OIDC
                 PAPERLESS_APPS: 'allauth.socialaccount.providers.openid_connect'
                 PAPERLESS_SOCIAL_AUTO_SIGNUP: true
-                PAPERLESS_SOCIALACCOUNT_PROVIDERS:
-                  valuesFrom:
-                    - kind: ConfigMap
-                      name: paperless-configfiles
-                      targetPath: ""
+                PAPERLESS_SOCIALACCOUNT_PROVIDERS: ${PAPERLESS_SOCIALACCOUNT_PROVIDERS}
                 PAPERLESS_DISABLE_REGULAR_LOGIN: true
     cnpg:
       main:
