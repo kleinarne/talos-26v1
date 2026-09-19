@@ -52,7 +52,7 @@ spec:
                     name: paperless-oidc-secret
                     key: socialaccount_providers
                     expandObjectName: false
-                PAPERLESS_DISABLE_REGULAR_LOGIN: true
+                PAPERLESS_DISABLE_REGULAR_LOGIN: false
     cnpg:
       main:
         mode: recovery
