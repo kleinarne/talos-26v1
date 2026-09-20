@@ -57,7 +57,8 @@ data:
             require_pkce: true
             pkce_challenge_method: 'S256'
             redirect_uris:
-              - 'https://paperless.${DOMAIN_0}/login/generic_oauth'
+              # - 'https://paperless.${DOMAIN_0}/login/generic_oauth'
+              - 'https://paperless-ngx.paperless-ngx.svc.cluster.local/login/generic_oauth'
             scopes:
               - 'openid'
               - 'profile'
