@@ -30,12 +30,8 @@ data:
     access_control:
       default_policy: deny
       rules:
-        - domain:
-            - '*.${DOMAIN_0}'
-            - ${DOMAIN_0}
+        - domain: '*.${DOMAIN_0}'
           policy: one_factor
-          subject:
-            - group:admin
     identity_providers:
       oidc:
         hmac_secret: {{ secret "/config/secret/hmac_secret" }}
