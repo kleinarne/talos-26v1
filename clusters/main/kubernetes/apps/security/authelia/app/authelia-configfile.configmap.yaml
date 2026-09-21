@@ -52,7 +52,7 @@ data:
             require_pkce: true
             pkce_challenge_method: 'S256'
             redirect_uris:
-              - 'https://paperless.${DOMAIN_0}/accounts/oidc/authelia/login/callback/'
+              - 'https://paperless-ngx.paperless-ngx.svc.cluster.local/accounts/oidc/authelia/login/callback/'
             scopes:
               - 'openid'
               - 'profile'
