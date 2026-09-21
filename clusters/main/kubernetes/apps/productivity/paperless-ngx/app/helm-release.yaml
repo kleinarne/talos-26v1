@@ -102,7 +102,7 @@ spec:
     ingress:
       main:
         enabled: true
-        ingressClassName: external
+        ingressClassName: internal
         annotations:
           cert-manager.io/cluster-issuer: domain-0-le-prod
         hosts:
