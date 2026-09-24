@@ -45,14 +45,14 @@ spec:
                 PAPERLESS_OCR_LANGUAGE: "eng"
                 PAPERLESS_OCR_LANGUAGES: "eng deu"
                 # django-allauth / Authelia OIDC
-                PAPERLESS_APPS: 'allauth.socialaccount.providers.openid_connect'
-                PAPERLESS_SOCIAL_AUTO_SIGNUP: true
-                PAPERLESS_SOCIALACCOUNT_PROVIDERS: 
-                  secretKeyRef: 
-                    name: paperless-oidc-secret
-                    key: socialaccount_providers
-                    expandObjectName: false
-                PAPERLESS_DISABLE_REGULAR_LOGIN: false
+                #PAPERLESS_APPS: 'allauth.socialaccount.providers.openid_connect'
+                #PAPERLESS_SOCIAL_AUTO_SIGNUP: true
+                #PAPERLESS_SOCIALACCOUNT_PROVIDERS: 
+                #  secretKeyRef: 
+                #    name: paperless-oidc-secret
+                #    key: socialaccount_providers
+                #    expandObjectName: false
+                #PAPERLESS_DISABLE_REGULAR_LOGIN: false
     cnpg:
       main:
         mode: recovery
@@ -105,10 +105,10 @@ spec:
         ingressClassName: internal
         annotations:
           cert-manager.io/cluster-issuer: domain-0-le-prod
-          nginx.ingress.kubernetes.io/auth-method: 'GET'
-          nginx.ingress.kubernetes.io/auth-url: 'http://authelia.authelia.svc.cluster.local/api/authz/auth-request'
-          nginx.ingress.kubernetes.io/auth-signin: 'https://auth.arneklein.net?rm=$request_method'
-          nginx.ingress.kubernetes.io/auth-response-headers: 'Remote-User,Remote-Name,Remote-Groups,Remote-Email'
+        #  nginx.ingress.kubernetes.io/auth-method: 'GET'
+        #  nginx.ingress.kubernetes.io/auth-url: 'http://authelia.authelia.svc.cluster.local/api/authz/auth-request'
+        #  nginx.ingress.kubernetes.io/auth-signin: 'https://auth.arneklein.net?rm=$request_method'
+        #  nginx.ingress.kubernetes.io/auth-response-headers: 'Remote-User,Remote-Name,Remote-Groups,Remote-Email'
         hosts:
           - host: paperless.${DOMAIN_0}
             paths:
