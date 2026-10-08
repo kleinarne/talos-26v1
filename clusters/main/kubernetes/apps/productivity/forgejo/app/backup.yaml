@@ -13,14 +13,13 @@ stringData:
   AWS_SECRET_ACCESS_KEY: ${GARAGE_S3_SECRETKEY}
 ---
 # Nightly restic backup of the Forgejo data PVC to Garage S3
-# Requires a VolumeSnapshotClass matching the PVC storage class
 apiVersion: volsync.backube/v1alpha1
 kind: ReplicationSource
 metadata:
   name: forgejo
   namespace: forgejo
 spec:
-  sourcePVC: forgejo-shared  # verify: default PVC name for the chart is <release>-shared
+  sourcePVC: forgejo-shared  # verify after first deploy: kubectl get pvc -n forgejo
   trigger:
     schedule: "7 1 * * *"
   restic:
@@ -32,8 +31,8 @@ spec:
       weekly: 5
       monthly: 12
       yearly: 0
-    storageClassName: ${STORAGE_CLASS_DEFAULT}
-    # volumeSnapshotClassName: ${SNAPSHOT_CLASS_DEFAULT}
+    storageClassName: longhorn
+    volumeSnapshotClassName: longhorn-snapshot-vsc
     moverSecurityContext:
       runAsUser: 1000
       runAsGroup: 1000
