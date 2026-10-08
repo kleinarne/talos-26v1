@@ -1,0 +1,39 @@
+---
+# Restic repository credentials for the Forgejo PVC backup
+apiVersion: v1
+kind: Secret
+metadata:
+  name: forgejo-backup-restic
+  namespace: forgejo
+type: Opaque
+stringData:
+  RESTIC_REPOSITORY: s3:${GARAGE_S3_URL}/${GARAGE_S3_BUCKET}/forgejo
+  RESTIC_PASSWORD: ${GARAGE_S3_ENCRYPTIONKEY}
+  AWS_ACCESS_KEY_ID: ${GARAGE_S3_ACCESSKEY}
+  AWS_SECRET_ACCESS_KEY: ${GARAGE_S3_SECRETKEY}
+---
+# Nightly restic backup of the Forgejo data PVC to Garage S3
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: forgejo
+  namespace: forgejo
+spec:
+  sourcePVC: forgejo-shared  # verify after first deploy: kubectl get pvc -n forgejo
+  trigger:
+    schedule: "7 1 * * *"
+  restic:
+    copyMethod: Snapshot
+    repository: forgejo-backup-restic
+    retain:
+      hourly: 0
+      daily: 7
+      weekly: 5
+      monthly: 12
+      yearly: 0
+    storageClassName: longhorn
+    volumeSnapshotClassName: longhorn-snapshot-vsc
+    moverSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
