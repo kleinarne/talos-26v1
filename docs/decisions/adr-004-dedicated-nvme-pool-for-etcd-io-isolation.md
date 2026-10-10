@@ -19,18 +19,18 @@ latency spikes and the cluster freezes.
 Constraints as of 2026-10-10:
 
 - A spare 1 TB PCIe 3.0 x4 NVMe SSD became available at no cost
-  (**[REDACT: model pending the ADR-002 disclosure decision]** —
-  value-segment DRAM-less controller with HMB, TLC NAND; SMART verified:
+  (white-label Phison E15, PS5015-E15T controller —
+  value-segment DRAM-less with HMB, TLC NAND; SMART verified:
   6% endurance used, zero media errors, full spare). It is white-label:
   no firmware updates, no warranty.
-- The current mainboard (**[REDACT: model pending the ADR-002 disclosure
-  decision]**) has no M.2 slot and both PCIe slots are occupied (GPU +
+- The current mainboard (ASRock Rack B450D4U-V1L, a
+  Hetzner-customized variant) has no M.2 slot and both PCIe slots are occupied (GPU +
   SATA HBA), so the NVMe cannot be attached without a board swap. The CPU
-  (**[REDACT: Ryzen 5 4x00]**) is a retail SKU that appears on B550 CPU
+  (AMD Ryzen 5 4500) is a retail SKU that appears on B550 CPU
   support lists. Standard tower case; 4x16 GB ECC UDIMM carries over
   (consumer-board ECC activation is uncertain — see Consequences).
 - Budget guidance was ~€200; the swap lands at ~€95 total with the free
-  drive. **[REDACT: exact replacement board model]**
+  drive. The replacement board is the ASRock B550 Pro4.
 
 ## Decision
 
@@ -47,8 +47,8 @@ Constraints as of 2026-10-10:
 3. Do the move **at the next rebuild**, not as a live migration. Rebuilds
    are the exact failure scenario this fixes, and the rebuild doubles as
    the DISASTER-RECOVERY.md Phase 1–3 rehearsal.
-4. Swap the mainboard to a B550-class consumer board (**[REDACT: exact
-   model]**) chosen for: ECC UDIMM support, 4 DIMM slots, two M.2 sockets,
+4. Swap the mainboard to a B550-class consumer board
+   (ASRock B550 Pro4) chosen for: ECC UDIMM support, 4 DIMM slots, two M.2 sockets,
    6 SATA, and an x16 + x16(x4) slot layout that hosts GPU and SATA HBA
    simultaneously. The NVMe goes into the CPU-attached M.2 socket; the
    second M.2 remains free for the planned AI VM disk.
