@@ -28,9 +28,9 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
 - [ ] Desktop recovery kit verified per DR Phase 0: repo clone, SSH keys,
       SOPS age key
 - [ ] Nightly VolSync/CNPG backups green; Garage buckets accessible
-- [ ] Current host outputs saved for ADR-001/004 [VERIFY]:
-      `zpool status` (SLOG present?) and `zfs list -t volume`
-      (which pool holds the Talos VM zvol?)
+- [ ] Current host outputs re-saved on execution day:
+      `zpool status` and `zfs list -t volume` (topology findings as of
+      2026-10-10 are already recorded in ADR-001/ADR-004 and here)
 
 ## Phase A — Board swap (hardware)
 
