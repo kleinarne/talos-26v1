@@ -12,7 +12,7 @@ migrate.
 
 Current state (verify against the live system — from notes, not audited):
 
-- Single host "pegasus": Ryzen 5 4500, 64 GB DDR4, GTX 1050 Ti (currently
+- Single host: Ryzen 5 4500, 64 GB DDR4, GTX 1050 Ti (currently
   unused; planned GPU passthrough for a latency-uncritical AI workload VM).
   Storage: 1 TB mirrored SSD, 3 TB mirrored HDD, RAID-Z1 3x8 TB, small
   system drive.
