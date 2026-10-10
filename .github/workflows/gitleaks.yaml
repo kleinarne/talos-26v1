@@ -1,0 +1,20 @@
+# Secret scanning per ADR-002: public-repo hygiene enforced by
+# tooling, not discipline.
+name: gitleaks
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: a secret in an old commit is still a leak.
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
