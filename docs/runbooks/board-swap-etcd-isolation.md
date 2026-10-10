@@ -2,8 +2,8 @@
 
 > **Status: DRAFT — never executed.** Hardware models are published per
 > the ADR-002 redaction rule (models are publishable context, not
-> secrets; device serial numbers are not). After execution, update
-> this runbook and DISASTER-RECOVERY.md from what actually happened
+> secrets; device serial numbers are not). After execution, update this
+> runbook and DISASTER-RECOVERY.md from what actually happened
 > (RECOVERY-REPORT pattern).
 
 ## Goal
@@ -24,20 +24,31 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       family, same user manual) runs the 4500 in production today.
       Do NOT buy a spare CPU to bench-test this: it would prove the
       board, not the 4500
-- [ ] BMC-only bench test (before the maintenance window; board + spare
-      PSU only — the AST2500 runs on standby power, no CPU/RAM needed,
-      production parts stay in the running host): BMC reachable on the
-      dedicated IPMI LAN port via a direct laptop link or isolated L2
-      segment; update the AST2500 BMC firmware to current there (the
-      update needs a network — "before LAN exposure" means before the
-      REAL LAN); read the installed BIOS version in the BMC web UI and
-      flash the current BIOS via IPMI (supported with no CPU installed
-      — a used 2019–2020 board may predate Ryzen-4000 support); verify
-      both M.2 sockets with the spare NVMe; record BIOS/BMC versions
+- [ ] No pre-window bench — no spare PSU exists. All board checks run
+      in-window instead (Phase A0): after shutdown, power the X470D4U
+      on the desk from the host's own PSU (board + PSU only, no
+      CPU/RAM — the AST2500 runs on standby power): BMC reachable on
+      the dedicated IPMI LAN port via a direct laptop link or isolated
+      L2 segment; update the AST2500 BMC firmware there (the update
+      needs a network — "before LAN exposure" means before the REAL
+      LAN, which an isolated in-window link satisfies identically);
+      read the installed BIOS version in the BMC web UI and flash the
+      current BIOS via IPMI (supported with no CPU installed — a used
+      2019–2020 board may predate Ryzen-4000 support); seat the spare
+      NVMe in M2_1 (physical seating only — the BMC cannot enumerate
+      it; real M.2 verification happens at Phase C pool creation
+      regardless); record BIOS/BMC versions
+- [ ] DOA-board risk is accepted explicitly: with zero pre-window
+      power-on, a dead used board is discovered only after production
+      shutdown. Mitigate at purchase time (seller return window or
+      POST proof); if unavailable, the revert path makes it a lost
+      window, not lost data
 - [ ] CPU/RAM-dependent checks (POST, 4 DIMMs, ECC) are NOT benchable
       outside the window — the 4500 and the DIMMs only exist inside the
-      running host. They run as Phase A0 at window start; 8-SATA-port
-      health is verified at Phase B pool import (no spare disks exist)
+      running host. They run as Phase A0's in-case first boot (the
+      desk-powered pre-check deliberately avoids a second assembly
+      cycle); 8-SATA-port health is verified at Phase B pool import
+      (no spare disks exist)
 - [ ] ECC verified active on the CURRENT system (2026-10-10,
       `dmidecode -t memory`: Total Width 72 bits; 4x Samsung
       M391A2K43BB1-CPB DDR4-2133 ECC UDIMM) — expected to carry over,
@@ -59,13 +70,20 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       `zpool status` and `zfs list -t volume` (topology findings as of
       2026-10-10 are already recorded in ADR-001/ADR-004 and here)
 
-## Phase A0 — Bench test (window start, ~30 min)
+## Phase A0 — In-window board checks (window start, ~45 min)
 
-- [ ] Pull the 4500 and all 4 DIMMs from the old board and bench the
-      X470D4U: POST, all 4 DIMMs detected, ECC active in BIOS
+- [ ] Shut down production; pull the host PSU and desk-power the X470D4U
+      (board + PSU only, no CPU/RAM): BMC reachable, AST2500 firmware
+      updated on the isolated link, installed BIOS version read, current
+      BIOS flashed via IPMI, spare NVMe seated in M2_1 (physical check
+      only — enumeration happens at Phase C); record BIOS/BMC versions
+- [ ] Abort is cheapest here: nothing is disassembled except the PSU —
+      a dead board ends the window before any teardown
+- [ ] Then install the board in the case with CPU, RAM, GPU in one
+      build (no separate bench assembly); first boot IS the POST test:
+      verify POST, all 4 DIMMs detected, ECC active in BIOS
 - [ ] Fails → reinstall CPU/RAM in the old board and abort the window
-      (rollback path below); nothing else has been disassembled yet,
-      so aborting here is cheap
+      (rollback path below)
 
 ## Phase A — Board swap (hardware)
 
@@ -74,7 +92,8 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
 - [ ] Reconnect all 8 SATA data disks onto the 8 onboard SATA ports
       (exactly 8 ports, zero headroom; port order is irrelevant to ZFS
       import, but photograph the mapping anyway)
-- [ ] Install the NVMe in M2_1 (PCIe 3.0 x2 or SATA3); M2_2 stays free
+- [ ] NVMe already seated in M2_1 (Phase A0) — verify screw and socket
+      after in-case handling; M2_2 stays free
       for the planned AI VM disk
 - [ ] Install the GPU in PCIE6 (top slot, x16). A dual-slot card ends at
       PCIE5 — PCIE5 stays usable with a true 2.0-slot card, PCIE4
@@ -182,8 +201,12 @@ recorded (ADR-002 rule). Verify the bind after the swap on the host:
 
 ## Rollback
 
-- New board fails to POST with the CPU: revert to the old board. Keep the
-  old board until Phase D passes; sell only after the write-up.
+- New board fails to POST with the CPU: revert to the old board — a
+  full second board swap (disassemble, remount, re-cable 8 SATA,
+  reseat GPU); budget 1.5–2 h, not minutes. Interface names revert
+  with the board, and SATA port order is irrelevant to ZFS import, so
+  the old host comes back without config churn. Keep the old board
+  until Phase D passes; sell only after the write-up.
 - SATA port or cabling trouble mid-swap: install the SAS HBA (cold spare)
   in PCIE4 (x8, never blocked by the GPU) and continue; PCIE5 is only
   usable if the GPU is a true 2.0-slot card (2.2-slot and thicker cards
