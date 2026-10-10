@@ -12,7 +12,7 @@ migrate.
 
 Current state (verify against the live system — from notes, not audited):
 
-- Single host "pegasus": Ryzen 5 4600, 64 GB DDR4, GTX 1050 Ti (currently
+- Single host "pegasus": Ryzen 5 4500, 64 GB DDR4, GTX 1050 Ti (currently
   unused; planned GPU passthrough for a latency-uncritical AI workload VM).
   Storage: 1 TB mirrored SSD, 3 TB mirrored HDD, RAID-Z1 3x8 TB, small
   system drive.
@@ -65,17 +65,21 @@ Drivers for change:
    - etcd sync-write latency isolation: SLOG device (targeted, cheap) or
      separate pool / NVMe passthrough for the VM disk (stronger).
      A second zvol on the same pool does NOT isolate — not a fix.
+     Implemented (decision-agnostic) in ADR-004.
    - Rehearsal rebuild under simulated AI load as the acceptance test.
    - Pro: keeps the valued TrueCharts infrastructure; cheap, reversible.
-   - Con: keeps the etcd failure mode structurally; SLOG/pool choice adds
-     host-level configuration to own.
+   - Con: keeps the etcd failure mode structurally — reduced by ADR-004,
+     which moves the VM disk off the shared pool in every option; the
+     residual risk there is the single, non-redundant NVMe. SLOG/pool
+     choice adds host-level configuration to own.
 1. **Status quo** — rejected: addresses none of the drivers.
 2. **TrueNAS stays, drop TrueCharts, keep Talos** — plain Helm/Kustomize.
    - Addresses opinionation (which is NOT a driver anymore) — effectively
      superseded by option 0 unless other reasons emerge.
 3. **TrueNAS stays, replace Talos with single-server k3s (SQLite/kine)** —
    the structural fix for the etcd failure mode, at the cost of the
-   datastore migration.
+   datastore migration. Also benefits from ADR-004 (SQLite/kine fsyncs on
+   the same VM disk).
 4. **Proxmox VE + k3s VM(s)** — full dwoitzik pattern; largest migration.
 5. **Talos bare metal** — rejected: ZFS/storage role, keeps etcd.
 
@@ -97,5 +101,7 @@ evaluation criteria and scores against:
 
 - Until this ADR is Accepted, the cluster stays on TrueNAS + TrueCharts.
 - ADR-003 (Forgejo vault continuity) applies to every option above.
+- ADR-004 (dedicated NVMe pool for the VM disk) applies to every option
+  above and is already Accepted.
 - When accepted, supersede this ADR with the concrete decision and open
   a migration ROADMAP entry with phases and rollback points.
