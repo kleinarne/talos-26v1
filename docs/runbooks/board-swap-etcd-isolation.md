@@ -2,8 +2,8 @@
 
 > **Status: DRAFT — never executed.** Hardware models are published per
 > the ADR-002 redaction rule (models are publishable context, not
-> secrets; device serial numbers are not). After execution, update
-> this runbook and DISASTER-RECOVERY.md from what actually happened
+> secrets; device serial numbers are not). After execution, update this
+> runbook and DISASTER-RECOVERY.md from what actually happened
 > (RECOVERY-REPORT pattern).
 
 ## Goal
@@ -12,15 +12,55 @@ Structural fix for the etcd fsync freeze mechanism (ADR-001) per ADR-004:
 swap the host mainboard to one with M.2 sockets, create a dedicated
 single-device ZFS pool on the spare 1 TB NVMe, and rebuild the cluster VM
 with its system/EPHEMERAL disk on that pool. The rebuild doubles as the
-live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
+live rehearsal of DISASTER-RECOVERY.md Phases 1–3, minus the TrueNAS
+reinstall step (the existing install boots from its boot device — only
+the pool-import and rebuild steps are rehearsed).
 
 ## Preconditions
 
-- [ ] Replacement mainboard purchased (ASRock B550 Pro4): ECC UDIMM
-      support verified, and the CPU (AMD Ryzen 5 4500) confirmed on the
-      board's official CPU support list BEFORE ordering
-- [ ] Case fits the new board's form factor (current board is micro-ATX;
-      measure before ordering an ATX board)
+- [ ] Replacement mainboard purchased: ASRock Rack X470D4U, used
+      (2026-10-10, per the ADR-004 Amendment). The Ryzen 5 4500 is NOT
+      explicitly covered by the board's official CPU support list
+      (4000-series appears only as G-Series or PRO) — compatibility
+      rests on evidence: the B450D4U-V1L (same platform, same BIOS
+      family, same user manual) runs the 4500 in production today.
+      Do NOT buy a spare CPU to bench-test this: it would prove the
+      board, not the 4500
+- [ ] No pre-window bench — no spare PSU exists. All board checks run
+      in-window instead (Phase A0 + Phase A): after shutdown, power the
+      X470D4U on the desk from the host's own PSU (board + PSU only, no
+      CPU/RAM — the AST2500 runs on standby power): BMC reachable on
+      the dedicated IPMI LAN port via a direct laptop link or isolated
+      L2 segment; update the AST2500 BMC firmware there (the update
+      needs a network — "before LAN exposure" means before the REAL
+      LAN, which an isolated in-window link satisfies identically);
+      read the installed BIOS version in the BMC web UI and flash the
+      current BIOS via IPMI (supported with no CPU installed — a used
+      2019–2020 board may predate Ryzen-4000 support); seat the spare
+      NVMe in M2_1 (physical seating only — the BMC cannot enumerate
+      it; real M.2 verification happens at Phase C pool creation
+      regardless); record BIOS/BMC versions
+- [ ] DOA-board risk is accepted explicitly: the board was bought used
+      with zero pre-window power-on, so a dead board is discovered only
+      after production shutdown. If the seller offers a return window
+      or POST proof, use it before the window; otherwise the revert
+      path makes it a lost window, not lost data
+- [ ] CPU/RAM-dependent checks (POST, 4 DIMMs, ECC) are NOT benchable
+      outside the window — the 4500 and the DIMMs only exist inside the
+      running host. They run as the in-case first boot in Phase A (the
+      desk-powered Phase A0 checks deliberately avoid a second assembly
+      cycle); 8-SATA-port health is verified at Phase B pool import
+      (no spare disks exist)
+- [ ] ECC verified active on the CURRENT system (2026-10-10,
+      `dmidecode -t memory`: Total Width 72 bits; 4x Samsung
+      M391A2K43BB1-CPB DDR4-2133 ECC UDIMM) — expected to carry over,
+      re-verify after the swap. Renoir has no EDAC MC driver: corrected
+      errors are silent, uncorrectable errors surface as MCE — claim
+      ECC operation, not ECC telemetry. The DIMMs are DDR4-2133 by SPD
+      (ECC UDIMMs ship without XMP): 2133 MT/s is the module ceiling,
+      not a board fault, and the swap does not change it
+- [ ] Case fit: the X470D4U is micro-ATX like the current board — no
+      case-fit risk (this precondition is closed)
 - [ ] Spare NVMe wiped (`nvme format` / `blkdiscard`); SMART baseline
       saved (2026-10-10: 6% used, 0 media errors, full spare)
 - [ ] Fresh etcd snapshot taken and stored off-host
@@ -32,24 +72,56 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       `zpool status` and `zfs list -t volume` (topology findings as of
       2026-10-10 are already recorded in ADR-001/ADR-004 and here)
 
-## Phase A — Board swap (hardware)
+## Phase A0 — Desk-powered board checks (window start, ~30 min)
 
-- [ ] Power off; swap mainboard; transfer CPU, RAM, GPU, SATA HBA
-- [ ] Reconnect all SATA data disks (count them — ~8)
-- [ ] Install the NVMe in the CPU-attached (first) M.2 socket
-- [ ] First boot into BIOS: verify POST, check ECC status if exposed,
-      set boot device order
-- [ ] Expect the onboard NIC to differ from the previous board —
-      interface names WILL change in TrueNAS (Phase B)
+- [ ] Shut down production; pull the host PSU and desk-power the X470D4U
+      (board + PSU only, no CPU/RAM): BMC reachable, AST2500 firmware
+      updated on the isolated link, installed BIOS version read, current
+      BIOS flashed via IPMI, spare NVMe seated in M2_1 (physical check
+      only — enumeration happens at Phase C); record BIOS/BMC versions
+- [ ] Abort is cheapest here: nothing is disassembled except the PSU —
+      a dead board ends the window before any teardown (reinstall the
+      PSU in the old host and power back up)
+
+## Phase A — In-case build and first boot (~45 min)
+
+- [ ] Mount the X470D4U in the case; transfer CPU, RAM; install the GPU
+      in PCIE6 (top slot, x16). A dual-slot card ends at PCIE5 — PCIE5
+      stays usable with a true 2.0-slot card, PCIE4 (bottom) is never
+      blocked. Do not populate PCIE4 simultaneously unless GPU x8 is
+      acceptable (PCIE6 + PCIE4 auto-switch to x8/x8)
+- [ ] Do NOT reinstall the SAS HBA (it is the cold spare)
+- [ ] NVMe already seated in M2_1 (Phase A0) — verify screw and socket
+      after in-case handling; M2_2 stays free for the planned AI VM disk
+- [ ] Reconnect all 8 SATA data disks onto the 8 onboard SATA ports
+      (exactly 8 ports, zero headroom; port order is irrelevant to ZFS
+      import, but photograph the mapping anyway)
+- [ ] First boot IS the POST test: verify POST, all 4 DIMMs detected,
+      ECC active in BIOS — fails → revert to the old board (rollback
+      below) and abort the window
+- [ ] In BIOS: set boot device order; set BIOS → Advanced → Chipset →
+      Onboard VGA = Enabled so the AST2500 KVM keeps video with the
+      GPU installed (otherwise the GPU auto-becomes primary video and
+      the KVM shows a black screen)
+- [ ] Expect the onboard NICs to differ from the previous board (dual
+      Intel i210 GbE + dedicated IPMI LAN port) — interface names WILL
+      change in TrueNAS (Phase B)
 
 ## Phase B — TrueNAS bring-up (DR Phases 1–2)
 
 - [ ] TrueNAS boots from its boot device
 - [ ] Fix network config for the renamed interfaces
 - [ ] Import all data pools (import, never recreate)
+- [ ] All 8 disks online in `zpool status` — this IS the 8-port health
+      check (no spare disks exist — these ports are only testable
+      live). 2 of the 8 ports hang off the ASM1061 behind the chipset:
+      a disk showing link resets goes on a native X470 port instead
 - [ ] Verify Garage comes up and buckets are reachable (DR Phase 2)
-- [ ] Note whether ECC is active (BIOS / `dmidecode`); non-ECC mode is
-      acceptable but must be recorded (ADR-004 consequence)
+- [ ] Re-verify ECC active (`dmidecode -t memory`: Total Width 72 bits;
+      ignore the type-16 "Error Correction Type" field — it is
+      unreliable in vendor DMI tables). Non-ECC here is a HALT, not a
+      note: on this board with this verified CPU/RAM combo it means
+      wrong DIMMs or a config fault
 
 ## Phase C — NVMe pool + cluster rebuild (DR Phases 3–4)
 
@@ -91,6 +163,24 @@ password and NIC MAC deliberately not recorded (ADR-002 redaction rule;
 the disk `serial` in the VM config is a libvirt-emulated value, not a
 hardware identifier).
 
+## Reference: X470D4U PCIe / M.2 layout (per ADR-004 Amendment)
+
+Expansion slots, top → bottom: PCIE6 (x16 physical and electrical, Gen3,
+CPU lanes; auto-switches to x8/x8 when PCIE4 is also populated; supports
+x4/4/4/4 bifurcation), PCIE5 (x8 physical, x4 electrical, CPU lanes —
+LSI 9207-8i HBAs confirmed working there by owners), PCIE4 (x16 physical,
+x8 electrical, CPU lanes). A dual-slot GPU in PCIE6 ends exactly at
+PCIE5: tight but usable with a true 2.0-slot card; 2.2-slot and thicker
+cards block PCIE5; PCIE4 is never blocked. M.2: M2_1 (PCIe 3.0 x2 or
+SATA3) and M2_2 (~2 GB/s class, x4/x2 depending on documentation) — both
+chipset-attached, not CPU lanes; accepted per ADR-004 (bandwidth is not
+the goal, fsync-latency isolation is). Onboard storage: 8 SATA ports
+(6x X470 chipset incl. 1 SATA-DOM port, 2x ASMedia ASM1061) — exactly
+enough for the 8 data disks, zero headroom. Networking: dual Intel i210
+GbE + dedicated IPMI LAN port (AST2500 with RTL8211E NCSI). BMC hygiene:
+update AST2500 firmware on an isolated link before real-LAN exposure;
+never expose the BMC to WAN.
+
 ## Console access (VM display)
 
 At recreation, bind the SPICE display to 127.0.0.1 instead of 0.0.0.0
@@ -110,8 +200,17 @@ recorded (ADR-002 rule). Verify the bind after the swap on the host:
 
 ## Rollback
 
-- New board fails to POST with the CPU: revert to the old board. Keep the
-  old board until Phase D passes; sell only after the write-up.
+- New board fails to POST with the CPU: revert to the old board — a
+  full second board swap (disassemble, remount, re-cable 8 SATA,
+  reseat GPU); budget 1.5–2 h, not minutes. Interface names revert
+  with the board, and SATA port order is irrelevant to ZFS import, so
+  the old host comes back without config churn. Keep the old board
+  until Phase D passes; sell only after the write-up.
+- SATA port or cabling trouble mid-swap: install the SAS HBA (cold spare)
+  in PCIE4 (x8, never blocked by the GPU) and continue; PCIE5 is only
+  usable if the GPU is a true 2.0-slot card (2.2-slot and thicker cards
+  block it) — check GPU thickness before relying on it. Do not abort
+  the maintenance window over a port issue.
 - Rebuild stalls: the old VM zvol stays untouched until Phase D passes —
   do not destroy it early.
 
