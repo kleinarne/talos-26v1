@@ -16,9 +16,10 @@ If these are gone, this document cannot help:
 3. VolSync/Restic backup data + CNPG backups in Garage buckets
    **[VERIFY: what exactly is covered, retention]**
 4. The storage disks themselves (ZFS pools, confirmed on-host
-   2026-10-10: boot-pool; whippedcream = 2 TB SSD mirror (upgraded from 1 TB); strawberry = HDD
-   mirror; chocolate-mint = RAID-Z1 3x8 TB, Garage backing)
-   **[VERIFY: datasets, mounts, which pool holds the Talos VM zvol]**
+   2026-10-10: boot-pool; whippedcream = 2 TB SSD mirror (upgraded from
+   1 TB), hosts the Talos VM system zvol and other VM zvols; strawberry
+   = HDD mirror, holds zvol replications of whippedcream; chocolate-mint
+   = RAID-Z1 3x8 TB, Garage backing) **[VERIFY: datasets, mounts]**
 5. DDNS (DOMAIN_0 in the SOPS-encrypted clusterenv) — router-side
    (UXG-Lite), survives cluster loss
 6. Off-site copy of backups — **[MISSING: currently the backup target
