@@ -93,11 +93,18 @@ Constraints as of 2026-10-10:
 - The board swap adds host-level operations to own: NIC change and
   interface renames in TrueNAS (dual Intel i210 GbE + dedicated IPMI LAN
   port), a physical maintenance window, and BMC ownership (AST2500:
-  firmware update before LAN exposure, never WAN-exposed; enable Onboard
-  VGA so the KVM keeps video with a GPU installed). ECC is a native,
-  documented feature of this server board — the consumer-board
-  ECC-activation uncertainty is gone; still verify ECC active after the
-  swap (BIOS, dmidecode, or BMC sensors). Execution lives in
+  firmware update before LAN exposure — i.e. before the REAL LAN; the
+  update itself runs over a direct laptop link or an isolated L2
+  segment — never WAN-exposed; enable Onboard VGA so the KVM keeps
+  video with a GPU installed). ECC is a native feature of this server
+  board, and the 4500's ECC capability is verified fact, not inference:
+  dmidecode on the running host (2026-10-10) shows Total Width 72 bits
+  with the Ryzen 5 4500 and the Samsung M391A2K43BB1-CPB ECC UDIMMs —
+  the non-PRO Renoir CPU runs ECC, and the spec sheet's "PRO only"
+  footnote is moot for this combination. Re-verify after the swap.
+  Caveat: Renoir has no EDAC MC driver — corrected errors are silent,
+  uncorrectable errors surface as MCE; this ADR claims ECC operation,
+  not ECC telemetry. Execution lives in
   docs/runbooks/board-swap-etcd-isolation.md.
 
 ## Amendment (2026-10-10): replacement board changed to ASRock Rack X470D4U
@@ -118,7 +125,9 @@ Rationale:
   otherwise means dead-until-physical-access.
 - Native ECC UDIMM support (proper server implementation) removes the
   consumer-board ECC-activation uncertainty from the original
-  Consequences.
+  Consequences — and the 4500's own ECC capability is verified on the
+  running sibling board (dmidecode Total Width 72 bits, 2026-10-10),
+  so this is evidence, not a spec-sheet inference.
 - 8 onboard SATA ports retire the SAS HBA: one less part, one freed PCIe
   slot. The pools sum to exactly 8 data disks — zero SATA headroom; the
   HBA is kept as a cold spare, not sold.
@@ -146,7 +155,20 @@ On-execution notes (reflected in the runbook):
   PCIE4 is never blocked.
 - Installing a GPU auto-selects it as primary video and blanks the BMC
   KVM until BIOS → Advanced → Chipset → Onboard VGA = Enabled.
-- Update the AST2500 firmware before the BMC joins the LAN.
-- Verify the Ryzen 5 4500 explicitly on the board's official CPU support
-  list (covers Ryzen 2000–5000; the 4500 is a retail Renoir SKU and must
-  be confirmed) — fallback is the runbook rollback to the old board.
+- Update the AST2500 firmware before the BMC joins the real LAN: the
+  update itself needs a network, so it runs over a direct laptop link
+  or an isolated L2 segment first.
+- The Ryzen 5 4500 is not explicitly covered by the board's official
+  CPU support categories (4000-series appears only as G-Series or
+  PRO). Compatibility rests on evidence: the B450D4U-V1L — same
+  platform, same BIOS family, same user manual — runs the 4500 in
+  production. Consequence: a used 2019–2020 board may carry an old
+  BIOS that predates Ryzen-4000 support; read the BIOS version via
+  the BMC and flash current via IPMI (works with no CPU installed)
+  BEFORE the CPU goes in. Fallback is the runbook rollback to the
+  old board.
+- ECC: verified active with the 4500 (dmidecode Total Width 72 bits,
+  2026-10-10, Samsung M391A2K43BB1-CPB ECC UDIMMs); re-verify after
+  the swap. Renoir has no EDAC MC driver — corrected errors are
+  silent, uncorrectable errors surface as MCE; monitor via kernel MCE
+  scan, not EDAC.
