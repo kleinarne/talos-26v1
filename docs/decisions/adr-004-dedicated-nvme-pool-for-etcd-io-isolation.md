@@ -73,9 +73,11 @@ Constraints as of 2026-10-10:
   nightly backups cover the data and the node is rebuildable. Revisit a
   mirror on the second M.2 if the drive proves unreliable.
 - A SLOG on the existing pools is no longer required for the etcd problem.
-  Remaining sync writers (CNPG, Garage) are not at freeze risk.
-  **[VERIFY: is a SLOG present? which pool held the Talos VM zvol? —
-  record the answers here once checked on the host]**
+  Remaining sync writers (CNPG, Garage) are not at freeze risk. Confirmed
+  on-host (2026-10-10, zpool status): no SLOG device on any pool
+  (boot-pool, chocolate-mint, strawberry, whippedcream) — sync writes
+  commit through the ZIL on the regular vdevs, as assumed. The pool
+  holding the Talos VM zvol is still to be confirmed (zfs list -t volume).
 - The NVMe is white-label: no firmware updates. SMART monitoring
   (Percentage Used, Media and Data Integrity Errors) must be added to the
   observability baseline.
