@@ -28,7 +28,8 @@ monorepo) is already public on GitHub.
 - Secrets may exist in the public repo only SOPS-encrypted (age) — this is
   already current practice in `talos-26v1` (`.sops.yaml`). The age
   private key lives off-repo and off-cluster (password manager and/or
-  paper). **[FILL IN: key location(s)]**
+  paper; the exact location(s) are deliberately not recorded in this
+  public repo).
 - Public-repo hygiene is enforced by tooling, not discipline: gitleaks in
   pre-commit and CI, plus a review rule.
 - Redaction rule for public content: no LAN IPs, internal hostnames, or
