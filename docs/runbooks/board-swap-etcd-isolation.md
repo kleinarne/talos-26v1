@@ -12,7 +12,9 @@ Structural fix for the etcd fsync freeze mechanism (ADR-001) per ADR-004:
 swap the host mainboard to one with M.2 sockets, create a dedicated
 single-device ZFS pool on the spare 1 TB NVMe, and rebuild the cluster VM
 with its system/EPHEMERAL disk on that pool. The rebuild doubles as the
-live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
+live rehearsal of DISASTER-RECOVERY.md Phases 1–3, minus the TrueNAS
+reinstall step (the existing install boots from its boot device — only
+the pool-import and rebuild steps are rehearsed).
 
 ## Preconditions
 
@@ -25,8 +27,8 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       Do NOT buy a spare CPU to bench-test this: it would prove the
       board, not the 4500
 - [ ] No pre-window bench — no spare PSU exists. All board checks run
-      in-window instead (Phase A0): after shutdown, power the X470D4U
-      on the desk from the host's own PSU (board + PSU only, no
+      in-window instead (Phase A0 + Phase A): after shutdown, power the
+      X470D4U on the desk from the host's own PSU (board + PSU only, no
       CPU/RAM — the AST2500 runs on standby power): BMC reachable on
       the dedicated IPMI LAN port via a direct laptop link or isolated
       L2 segment; update the AST2500 BMC firmware there (the update
@@ -38,15 +40,15 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       NVMe in M2_1 (physical seating only — the BMC cannot enumerate
       it; real M.2 verification happens at Phase C pool creation
       regardless); record BIOS/BMC versions
-- [ ] DOA-board risk is accepted explicitly: with zero pre-window
-      power-on, a dead used board is discovered only after production
-      shutdown. Mitigate at purchase time (seller return window or
-      POST proof); if unavailable, the revert path makes it a lost
-      window, not lost data
+- [ ] DOA-board risk is accepted explicitly: the board was bought used
+      with zero pre-window power-on, so a dead board is discovered only
+      after production shutdown. If the seller offers a return window
+      or POST proof, use it before the window; otherwise the revert
+      path makes it a lost window, not lost data
 - [ ] CPU/RAM-dependent checks (POST, 4 DIMMs, ECC) are NOT benchable
       outside the window — the 4500 and the DIMMs only exist inside the
-      running host. They run as Phase A0's in-case first boot (the
-      desk-powered pre-check deliberately avoids a second assembly
+      running host. They run as the in-case first boot in Phase A (the
+      desk-powered Phase A0 checks deliberately avoid a second assembly
       cycle); 8-SATA-port health is verified at Phase B pool import
       (no spare disks exist)
 - [ ] ECC verified active on the CURRENT system (2026-10-10,
@@ -70,7 +72,7 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       `zpool status` and `zfs list -t volume` (topology findings as of
       2026-10-10 are already recorded in ADR-001/ADR-004 and here)
 
-## Phase A0 — In-window board checks (window start, ~45 min)
+## Phase A0 — Desk-powered board checks (window start, ~30 min)
 
 - [ ] Shut down production; pull the host PSU and desk-power the X470D4U
       (board + PSU only, no CPU/RAM): BMC reachable, AST2500 firmware
@@ -78,32 +80,29 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       BIOS flashed via IPMI, spare NVMe seated in M2_1 (physical check
       only — enumeration happens at Phase C); record BIOS/BMC versions
 - [ ] Abort is cheapest here: nothing is disassembled except the PSU —
-      a dead board ends the window before any teardown
-- [ ] Then install the board in the case with CPU, RAM, GPU in one
-      build (no separate bench assembly); first boot IS the POST test:
-      verify POST, all 4 DIMMs detected, ECC active in BIOS
-- [ ] Fails → reinstall CPU/RAM in the old board and abort the window
-      (rollback path below)
+      a dead board ends the window before any teardown (reinstall the
+      PSU in the old host and power back up)
 
-## Phase A — Board swap (hardware)
+## Phase A — In-case build and first boot (~45 min)
 
-- [ ] Power off; swap mainboard; transfer CPU, RAM, GPU — do NOT
-      reinstall the SAS HBA (it is the cold spare)
+- [ ] Mount the X470D4U in the case; transfer CPU, RAM; install the GPU
+      in PCIE6 (top slot, x16). A dual-slot card ends at PCIE5 — PCIE5
+      stays usable with a true 2.0-slot card, PCIE4 (bottom) is never
+      blocked. Do not populate PCIE4 simultaneously unless GPU x8 is
+      acceptable (PCIE6 + PCIE4 auto-switch to x8/x8)
+- [ ] Do NOT reinstall the SAS HBA (it is the cold spare)
+- [ ] NVMe already seated in M2_1 (Phase A0) — verify screw and socket
+      after in-case handling; M2_2 stays free for the planned AI VM disk
 - [ ] Reconnect all 8 SATA data disks onto the 8 onboard SATA ports
       (exactly 8 ports, zero headroom; port order is irrelevant to ZFS
       import, but photograph the mapping anyway)
-- [ ] NVMe already seated in M2_1 (Phase A0) — verify screw and socket
-      after in-case handling; M2_2 stays free
-      for the planned AI VM disk
-- [ ] Install the GPU in PCIE6 (top slot, x16). A dual-slot card ends at
-      PCIE5 — PCIE5 stays usable with a true 2.0-slot card, PCIE4
-      (bottom) is never blocked. Do not populate PCIE4 simultaneously
-      unless GPU x8 is acceptable (PCIE6 + PCIE4 auto-switch to x8/x8)
-- [ ] First boot into BIOS: verify POST, check ECC status via the BMC
-      (native server ECC — report if NOT active), set boot device order
-- [ ] Set BIOS → Advanced → Chipset → Onboard VGA = Enabled so the
-      AST2500 KVM keeps video with the GPU installed (otherwise the GPU
-      auto-becomes primary video and the KVM shows a black screen)
+- [ ] First boot IS the POST test: verify POST, all 4 DIMMs detected,
+      ECC active in BIOS — fails → revert to the old board (rollback
+      below) and abort the window
+- [ ] In BIOS: set boot device order; set BIOS → Advanced → Chipset →
+      Onboard VGA = Enabled so the AST2500 KVM keeps video with the
+      GPU installed (otherwise the GPU auto-becomes primary video and
+      the KVM shows a black screen)
 - [ ] Expect the onboard NICs to differ from the previous board (dual
       Intel i210 GbE + dedicated IPMI LAN port) — interface names WILL
       change in TrueNAS (Phase B)
@@ -114,9 +113,9 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
 - [ ] Fix network config for the renamed interfaces
 - [ ] Import all data pools (import, never recreate)
 - [ ] All 8 disks online in `zpool status` — this IS the 8-port health
-      check (no spare disks existed for the bench). 2 of the 8 ports
-      hang off the ASM1061 behind the chipset: a disk showing link
-      resets goes on a native X470 port instead
+      check (no spare disks exist — these ports are only testable
+      live). 2 of the 8 ports hang off the ASM1061 behind the chipset:
+      a disk showing link resets goes on a native X470 port instead
 - [ ] Verify Garage comes up and buckets are reachable (DR Phase 2)
 - [ ] Re-verify ECC active (`dmidecode -t memory`: Total Width 72 bits;
       ignore the type-16 "Error Correction Type" field — it is
