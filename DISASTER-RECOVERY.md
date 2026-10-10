@@ -12,7 +12,8 @@
 If these are gone, this document cannot help:
 
 1. This repository (public GitHub, clone on desktop as hedge)
-2. SOPS/age private key — **[FILL IN: location]**
+2. SOPS/age private key — password manager and/or paper copy (exact
+   location deliberately not recorded in this public repo)
 3. VolSync/Restic backup data + CNPG backups in Garage buckets
    **[VERIFY: what exactly is covered, retention]**
 4. The storage disks themselves (ZFS pools, confirmed on-host
