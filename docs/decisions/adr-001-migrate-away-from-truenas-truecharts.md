@@ -51,9 +51,10 @@ Drivers for change:
     of the current single-VM layout. On ZFS without a SLOG, etcd's sync
     writes (fsync) commit through the ZIL on the same vdevs that carry
     the async write bursts; under saturation, sync-write latency spikes —
-    the direct freeze mechanism. Confirmed on-host (2026-10-10, zpool
-    status): no SLOG on any pool. **[VERIFY: which pool holds the Talos
-    VM zvol?]**
+    the direct freeze mechanism. Confirmed on-host (2026-10-10): no SLOG
+    on any pool; the Talos VM system zvol sits on whippedcream (2 TB SATA
+    SSD mirror) — etcd's fsyncs, the VM's own image pulls, and Longhorn
+    replica writes all contend inside one zvol on one mirrored pool.
 - Main driver: make rebuilds, restores, backups, and heavy AI workloads
   coexist reliably on the current single 64 GB node — keeping the
   shared-infrastructure convenience if possible.
