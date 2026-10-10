@@ -1,8 +1,8 @@
 # Runbook: Host board swap + dedicated NVMe pool for the cluster VM
 
-> **Status: DRAFT — never executed.** Hardware facts use `[REDACT]`
-> placeholders until the ADR-002 disclosure decision is made (exact models
-> vs generic descriptions in this public repo). After execution, update
+> **Status: DRAFT — never executed.** Hardware models are published per
+> the ADR-002 redaction rule (models are publishable context, not
+> secrets; device serial numbers are not). After execution, update
 > this runbook and DISASTER-RECOVERY.md from what actually happened
 > (RECOVERY-REPORT pattern).
 
@@ -16,8 +16,8 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
 
 ## Preconditions
 
-- [ ] Replacement mainboard purchased: B550-class, ECC UDIMM support
-      verified, and the CPU (**[REDACT: Ryzen 5 4x00]**) confirmed on the
+- [ ] Replacement mainboard purchased (ASRock B550 Pro4): ECC UDIMM
+      support verified, and the CPU (AMD Ryzen 5 4500) confirmed on the
       board's official CPU support list BEFORE ordering
 - [ ] Case fits the new board's form factor (current board is micro-ATX;
       measure before ordering an ATX board)
@@ -84,5 +84,5 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
 
 - [ ] Write the recovery report; update this runbook and
       DISASTER-RECOVERY.md with actuals (pool names, timings, surprises)
-- [ ] Resolve the [VERIFY]/[REDACT] markers in ADR-001, ADR-004, and here
+- [ ] Resolve the [VERIFY] markers in ADR-001, ADR-004, and here
 - [ ] Sell or rehome the replaced mainboard
