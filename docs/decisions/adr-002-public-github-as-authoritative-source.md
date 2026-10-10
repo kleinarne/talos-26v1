@@ -33,8 +33,10 @@ monorepo) is already public on GitHub.
   pre-commit and CI, plus a review rule.
 - Redaction rule for public content: no LAN IPs, internal hostnames, or
   internal DNS topology in prose; no personal data (paperless documents,
-  media libraries); service inventory disclosure is a deliberate,
-  reviewed choice.
+  media libraries); no device identifiers (serial numbers, WWNs, MACs);
+  hardware *models* are publishable context, not secrets (applied in
+  ADR-004 and the board-swap runbook); service inventory disclosure is
+  a deliberate, reviewed choice.
 - A recent clone of the repo stays on the desktop (CachyOS) as a hedge
   against GitHub unavailability during recovery.
 
