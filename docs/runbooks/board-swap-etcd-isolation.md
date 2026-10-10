@@ -83,13 +83,30 @@ VM `talos_cluster` (id 6), RUNNING, autostart on. 32 GB RAM, 1 socket ×
 5 cores × 2 threads, cpu_mode HOST-MODEL, UEFI (OVMF_CODE.fd), no TPM,
 no secure boot. VIRTIO disk via zvol (system zvol:
 whippedcream/vm-zvols/talos_systemdrive_2026-09-14), VIRTIO NIC on br0,
-SPICE display bound to 0.0.0.0 with password — at recreation, consider
-binding to localhost + SSH tunnel instead. The Talos installer ISO
+SPICE display bound to 0.0.0.0 with password — change the bind to
+127.0.0.1 at recreation (see "Console access" below). The Talos installer ISO
 (strawberry/encrypted/install/metal-amd64.iso) is still attached as CDROM
 — a rebuild leftover; do not carry it over unless reinstalling. Display
 password and NIC MAC deliberately not recorded (ADR-002 redaction rule;
 the disk `serial` in the VM config is a libvirt-emulated value, not a
 hardware identifier).
+
+## Console access (VM display)
+
+At recreation, bind the SPICE display to 127.0.0.1 instead of 0.0.0.0
+and reach the console from the desktop through the existing SSH path:
+
+    ssh -N -L 5902:127.0.0.1:5902 -L 5903:127.0.0.1:5903 root@<truenas-host>
+    remote-viewer spice://127.0.0.1:5902     # or browser: http://127.0.0.1:5903
+
+Keep the SPICE password: the loopback bind, the SSH key, and the password
+are layered, and the password remains the gate on the tunneled port.
+DR Phase 0 already requires SSH keys on the desktop, so console access
+adds no new recovery dependency. This is the documented
+TrueNAS/remote-viewer pattern; no secrets, IPs, or internal hostnames
+recorded (ADR-002 rule). Verify the bind after the swap on the host:
+
+    ss -tlnp | grep 590    # expect 127.0.0.1 entries only
 
 ## Rollback
 
