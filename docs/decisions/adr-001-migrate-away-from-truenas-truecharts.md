@@ -14,8 +14,8 @@ Current state (verify against the live system — from notes, not audited):
 
 - Single host: Ryzen 5 4500, 64 GB DDR4, GTX 1050 Ti (currently
   unused; planned GPU passthrough for a latency-uncritical AI workload VM).
-  Storage: 1 TB mirrored SSD, 3 TB mirrored HDD, RAID-Z1 3x8 TB, small
-  system drive.
+  Storage: 2 TB mirrored SSD (replaced the former 1 TB pool in 2026),
+  3 TB mirrored HDD, RAID-Z1 3x8 TB, small system drive.
 - TrueNAS SCALE 25.10.7 as storage backend and hypervisor, native ZFS.
 - Single-node Talos VM (32 GB RAM) provisioned via TrueForge Clustertool
   (https://github.com/trueforge-org/clustertool), successor project of the
