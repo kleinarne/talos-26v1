@@ -81,5 +81,14 @@ If these are gone, this document cannot help:
 - **WireGuard clients** have a known DNS-update issue after reconnect —
   do not lose remote access during recovery expecting WireGuard DNS to
   "just work".
+- **Stale VM zvols from earlier rebuilds:** whippedcream carries two
+  superseded dated talos_systemdrive zvols (~166 GB total), and
+  strawberry holds orphaned replication zvols (cluster_v3 ~426 GB and
+  ~485 GB under "temporarybackups", cluster_v2 ~41 GB, plus an empty
+  cluster_recoverytest stub) whose source zvols no longer exist on
+  whippedcream. Until an off-site copy exists these are de facto the most
+  recent full-VM copies — keep them, but prune after the board-swap
+  Phase D passes (docs/runbooks/board-swap-etcd-isolation.md) so a real
+  recovery does not have to disambiguate zombie cluster_v3 copies.
 - **[FILL IN: secrets inventory — everything not covered by SOPS in the
   repo]**
