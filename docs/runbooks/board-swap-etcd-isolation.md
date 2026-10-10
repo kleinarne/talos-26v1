@@ -57,10 +57,10 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       no redundancy, ashift=12
 - [ ] Recreate the cluster VM with its system disk as a zvol on `tank-vm`
       **[VERIFY: Clustertool zvol placement or manual VM edit needed?]**
-- [ ] Before destroying anything: record the currently attached system
-      zvol in the VM config (current VM runs from whippedcream/vm-zvols/,
-      confirmed 2026-10-10; several dated talos_systemdrive zvols from
-      earlier rebuilds exist) and keep it as the rollback zvol
+- [ ] Before destroying anything: the attached system zvol is confirmed
+      (midclt vm.query, 2026-10-10) as
+      whippedcream/vm-zvols/talos_systemdrive_2026-09-14 — keep it as the
+      rollback zvol
 - [ ] Bootstrap the cluster from repo manifests; if the Flux `dependsOn`
       restore waves (ADR-001 option 0) are not merged yet, keep the
       one-chart-at-a-time procedure — do not let all restores fire at once
@@ -76,6 +76,20 @@ live rehearsal of DISASTER-RECOVERY.md Phases 1–3.
       does not freeze the cluster
 - [ ] NVMe SMART monitoring added to Grafana (Percentage Used,
       Media and Data Integrity Errors)
+
+## Reference: current VM config (midclt vm.query, 2026-10-10)
+
+VM `talos_cluster` (id 6), RUNNING, autostart on. 32 GB RAM, 1 socket ×
+5 cores × 2 threads, cpu_mode HOST-MODEL, UEFI (OVMF_CODE.fd), no TPM,
+no secure boot. VIRTIO disk via zvol (system zvol:
+whippedcream/vm-zvols/talos_systemdrive_2026-09-14), VIRTIO NIC on br0,
+SPICE display bound to 0.0.0.0 with password — at recreation, consider
+binding to localhost + SSH tunnel instead. The Talos installer ISO
+(strawberry/encrypted/install/metal-amd64.iso) is still attached as CDROM
+— a rebuild leftover; do not carry it over unless reinstalling. Display
+password and NIC MAC deliberately not recorded (ADR-002 redaction rule;
+the disk `serial` in the VM config is a libvirt-emulated value, not a
+hardware identifier).
 
 ## Rollback
 
