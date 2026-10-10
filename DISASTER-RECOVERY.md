@@ -17,15 +17,16 @@ If these are gone, this document cannot help:
    **[VERIFY: what exactly is covered, retention]**
 4. The storage disks themselves (ZFS pools: 1 TB SSD mirror, 3 TB HDD
    mirror, RAID-Z1 3x8 TB) **[VERIFY: pool names, datasets, mounts]**
-5. DDNS (arneklein.net) — router-side (UXG-Lite), survives cluster loss
+5. DDNS (DOMAIN_0 in the SOPS-encrypted clusterenv) — router-side
+   (UXG-Lite), survives cluster loss
 6. Off-site copy of backups — **[MISSING: currently the backup target
-   (Garage) runs on pegasus itself. See "Known gaps".]**
+   (Garage) runs on the TrueNAS host itself. See "Known gaps".]**
 
 ## Recovery phases
 
 ### Phase 0 — Preconditions
 - [ ] Working desktop (CachyOS) with repo clone, SSH keys, SOPS age key
-- [ ] Physical access to pegasus
+- [ ] Physical access to the TrueNAS host
 
 ### Phase 1 — Hardware and TrueNAS
 - [ ] Reinstall TrueNAS SCALE 25.10.7 **[VERIFY: use an installer image you
@@ -67,7 +68,8 @@ If these are gone, this document cannot help:
 
 ## Known gaps (fix before relying on this)
 
-- **Backup target co-located with the cluster:** Garage runs on pegasus.
+- **Backup target co-located with the cluster:** Garage runs on the
+  TrueNAS host.
   A house-level event (fire, ransomware across the box) loses the backup
   data too. Add an encrypted off-site copy (friend's box or object
   storage) — this outranks any documentation concern.
