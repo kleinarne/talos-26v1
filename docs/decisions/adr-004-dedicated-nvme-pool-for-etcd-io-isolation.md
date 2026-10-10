@@ -76,8 +76,9 @@ Constraints as of 2026-10-10:
   Remaining sync writers (CNPG, Garage) are not at freeze risk. Confirmed
   on-host (2026-10-10, zpool status): no SLOG device on any pool
   (boot-pool, chocolate-mint, strawberry, whippedcream) — sync writes
-  commit through the ZIL on the regular vdevs, as assumed. The pool
-  holding the Talos VM zvol is still to be confirmed (zfs list -t volume).
+  commit through the ZIL on the regular vdevs, as assumed. The Talos
+  VM system zvol is confirmed on whippedcream (2 TB SATA SSD mirror),
+  alongside other VM zvols (zfs list -t volume, 2026-10-10).
 - The NVMe is white-label: no firmware updates. SMART monitoring
   (Percentage Used, Media and Data Integrity Errors) must be added to the
   observability baseline.
