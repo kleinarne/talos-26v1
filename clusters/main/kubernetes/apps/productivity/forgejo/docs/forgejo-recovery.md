@@ -53,18 +53,27 @@ unsuspend Forgejo, and let it reconcile.
 
 ## Recovery to a fresh volume (safer)
 
-Omit `destinationPVC` and set `capacity` instead — VolSync creates a **new** PVC.
-Then switch the HelmRelease to it and remove the old PVC:
+Omit `destinationPVC` and set `capacity` instead — VolSync creates a **new** PVC,
+named after the ReplicationDestination CR. Then point the HelmRelease at it and
+remove the old PVC.
+
+Note on the chart values: the forgejo chart has **no `existingClaim` key**.
+Reuse an existing PVC with `persistence.create: false` plus `persistence.claimName`
+(the chart's hardcoded default is `gitea-shared-storage`, which is why the live
+PVC carries that name):
 
 ```yaml
 persistence:
   enabled: true
-  existingClaim: forgejo-restored
+  create: false                  # do NOT create a new PVC
+  claimName: forgejo-restored    # the PVC VolSync created
 ```
 
 Recommended for fire drills: restore to a fresh PVC, point a throwaway
 Forgejo instance at it, confirm it boots and repos are intact — without
-touching the live data.
+touching the live data. See `apps/testing/forgejo-drill/` for the drill
+implementation: everything is applied and torn down via repo commits, the
+throwaway instance runs in its own namespace on the restored PVC.
 
 ## Raw restic escape hatch
 
