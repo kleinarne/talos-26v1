@@ -23,10 +23,16 @@ spec:
   maxHistory: 2
   driftDetection:
     mode: warn
+  # The drill PVC appears asynchronously (VolSync restic restore). The pod is
+  # EXPECTED to sit Pending until then. helm's --wait must not gate the
+  # install on pod readiness, or it burns the 20m timeout (x3 retries)
+  # waiting for a PVC that does not exist yet. Do not remove these.
   install:
+    disableWait: true
     remediation:
       retries: 3
   upgrade:
+    disableWait: true
     cleanupOnFail: true
     remediation:
       retries: 3
