@@ -110,7 +110,7 @@ fi
 render_from_file "$HR_FILE" "$HEAD_OUT" || exit 2
 
 rc=0
-diff -u "$BASE_OUT" "$HEAD_OUT" || rc=$?
+diff --color=auto -u "$BASE_OUT" "$HEAD_OUT" || rc=$?
 if [ "$rc" -eq 0 ]; then
   echo "renders identical" >&2
 else
