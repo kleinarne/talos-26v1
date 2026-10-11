@@ -16,8 +16,12 @@
 # the diff too. If the file does not exist in BASE_REF (new app), the base
 # side is empty and the diff is all-additions.
 #
-# Requires: git, sops, flux, helm, yq (mikefarah v4). SOPS_AGE_KEY_FILE must
-# be set (direnv/.envrc handles this in this repo).
+# Requires: git, sops, flux, helm, yq. SOPS_AGE_KEY_FILE must be set
+# (direnv/.envrc handles this in this repo).
+#
+# Both yq dialects are supported: mikefarah Go yq and the kislyuk python
+# yq/jq wrapper. The python dialect emits JSON (quoted strings), so scalar
+# extraction goes through yq_scalar which strips the surrounding quotes.
 #
 # Exit code follows diff(1): 0 = renders identical, 1 = differences (review
 # them), 2 = error.
@@ -40,6 +44,13 @@ for tool in git sops flux helm yq diff; do
   command -v "$tool" >/dev/null 2>&1 || fail "missing required tool: $tool"
 done
 
+# Scalar extraction that tolerates both yq dialects: the python yq wrapper
+# emits JSON, so strings come back double-quoted; mikefarah yq emits them raw.
+# Strips one pair of surrounding double quotes if present.
+yq_scalar() {  # $1: expression, $2: file
+  yq "$1" "$2" | sed -e 's/^"\(.*\)"$/\1/'
+}
+
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/hrdiff.XXXXXXXX")"
 chmod 700 "$WORK"
 cleanup() {
@@ -52,7 +63,8 @@ trap cleanup EXIT
 
 # Substitute ${VAR} placeholders from the SOPS-encrypted clusterenv the same
 # way Flux postBuild does at reconcile time (flux envsubst), then extract
-# spec.values into a plain helm values file.
+# spec.values into a plain helm values file. (python-yq emits JSON here,
+# which helm accepts as a values file — JSON is a YAML subset.)
 subst_values() {  # $1: helm-release.yaml (raw) -> $WORK/.values
   sops exec-env "$ENV_FILE" "flux envsubst --strict < '$1' > '$WORK/.subst'" \
     || fail "substitution failed for $1 (undefined variable?)"
@@ -68,16 +80,16 @@ subst_values() {  # $1: helm-release.yaml (raw) -> $WORK/.values
 # Render one HelmRelease (any revision) into $2.
 render_from_file() {  # $1: helm-release.yaml (raw), $2: output file
   local f="$1" out="$2" name ns chart ver src repo_file type url ref
-  name="$(yq '.metadata.name' "$f")"
-  ns="$(yq '.metadata.namespace' "$f")"
-  chart="$(yq '.spec.chart.spec.chart' "$f")"
-  ver="$(yq '.spec.chart.spec.version' "$f")"
-  src="$(yq '.spec.chart.spec.sourceRef.name' "$f")"
+  name="$(yq_scalar '.metadata.name' "$f")"
+  ns="$(yq_scalar '.metadata.namespace' "$f")"
+  chart="$(yq_scalar '.spec.chart.spec.chart' "$f")"
+  ver="$(yq_scalar '.spec.chart.spec.version' "$f")"
+  src="$(yq_scalar '.spec.chart.spec.sourceRef.name' "$f")"
 
   repo_file="repositories/helm/${src}.yaml"
   [ -f "$repo_file" ] || fail "HelmRepository manifest not found: $repo_file"
-  type="$(yq '.spec.type // ""' "$repo_file")"
-  url="$(yq '.spec.url' "$repo_file")"
+  type="$(yq_scalar '.spec.type // ""' "$repo_file")"
+  url="$(yq_scalar '.spec.url' "$repo_file")"
 
   case "$type" in
     oci) ref="${url}/${chart}" ;;
