@@ -31,9 +31,10 @@ spec:
   destinationPVC: gitea-shared-storage    # overwrite existing PVC in place
   restic:
     repository: forgejo-backup-restic    # same Secret as the source
-    copyMethod: Snapshot
+    # Direct: with destinationPVC the mover writes straight into the
+    # existing volume; no snapshot is created (per the VolSync docs).
+    copyMethod: Direct
     cacheStorageClassName: <storage-class>
-    storageClassName: <storage-class>
     capacity: 10Gi
     moverSecurityContext:
       runAsUser: 1000
@@ -48,16 +49,46 @@ spec:
       previous: 2        # N snapshots back
 ```
 
-**4. When `status.completed` is set:** delete the ReplicationDestination,
+**4. When the sync completes** (`.status.lastSyncTime` set and the
+`Synchronizing` condition False): delete the ReplicationDestination,
 unsuspend Forgejo, and let it reconcile.
 
 ## Recovery to a fresh volume (safer)
 
-Omit `destinationPVC` and set `capacity` **and `accessModes`** instead — VolSync
-creates a **new** PVC, named after the ReplicationDestination CR. Without
+Omit `destinationPVC` and set `capacity` **and `accessModes`**. Without
 `destinationPVC`, `accessModes` is mandatory: VolSync rejects the object with
 `accessModes must be provided when destinationPVC is not` (hit during the
-2026-10-11 fire drill). Then point the HelmRelease at it and remove the old PVC.
+2026-10-11 fire drill).
+
+**This does NOT produce a PVC.** With `copyMethod: Snapshot`, VolSync restores
+into a scratch volume, snapshots it, removes the scratch volume, and reports
+the resulting **VolumeSnapshot** in `.status.latestImage` — after a successful
+sync, `kubectl get pvc` still returns NotFound (confirmed during the drill).
+Consuming the snapshot is a separate step: create a PVC whose `dataSource` is
+that snapshot:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: forgejo-restored
+  namespace: forgejo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: <storage-class>
+  dataSource:
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+    name: <from .status.latestImage.name>
+```
+
+(VolSync also ships a volume populator that lets a PVC's `dataSourceRef` point
+directly at the ReplicationDestination; the explicit snapshot reference above
+needs no extra controller and pins the exact point in time.)
 
 A **failed manual-trigger sync does not retry on its own** — a new sync only
 fires when the `trigger.manual` value changes (e.g. `restore-once` →
@@ -72,7 +103,7 @@ PVC carries that name):
 persistence:
   enabled: true
   create: false                  # do NOT create a new PVC
-  claimName: forgejo-restored    # the PVC VolSync created
+  claimName: forgejo-restored    # the PVC you created from the snapshot
 ```
 
 Also set `install.disableWait` / `upgrade.disableWait` on the HelmRelease
@@ -81,11 +112,12 @@ until the restore finishes, and helm's default readiness wait would stall
 the install for the full `timeout` (times remediation retries) on a PVC
 that does not exist yet (hit during the 2026-10-11 fire drill).
 
-Recommended for fire drills: restore to a fresh PVC, point a throwaway
-Forgejo instance at it, confirm it boots and repos are intact — without
-touching the live data. See `apps/testing/forgejo-drill/` for the drill
-implementation: everything is applied and torn down via repo commits, the
-throwaway instance runs in its own namespace on the restored PVC.
+Recommended for fire drills: restore to a fresh volume, point a throwaway
+Forgejo instance at the snapshot-backed PVC, confirm it boots and repos are
+intact — without touching the live data. See `apps/testing/forgejo-drill/` for
+the drill implementation: everything is applied and torn down via repo
+commits. The restore lands in a VolumeSnapshot that `app/pvc.yaml` consumes
+into a PVC, which the throwaway HelmRelease mounts in its own namespace.
 
 ## Raw restic escape hatch
 

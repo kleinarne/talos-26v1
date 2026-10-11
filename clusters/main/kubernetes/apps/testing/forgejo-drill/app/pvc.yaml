@@ -1,0 +1,26 @@
+---
+# Consume the restore result. A ReplicationDestination WITHOUT destinationPVC
+# (copyMethod: Snapshot) restores into a scratch volume, snapshots it, and
+# reports the VolumeSnapshot in .status.latestImage — it does NOT create a
+# PVC. The documented consumption step is a PVC whose dataSource is that
+# snapshot.
+#
+# Snapshot name read from `kubectl get replicationdestination -n forgejo-drill`
+# after the restore-once-2 sync (2026-10-11T20:31:56Z, result: Successful).
+# Drill-only object: removed by the teardown commit.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: forgejo-drill-restore
+  namespace: forgejo-drill
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: longhorn
+  dataSource:
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+    name: volsync-forgejo-drill-restore-dest-20261011203156
