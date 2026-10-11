@@ -1,0 +1,24 @@
+---
+# One-shot restore of the latest Forgejo backup snapshot into a FRESH PVC.
+# VolSync names the destination PVC after this CR: forgejo-drill-restore.
+# Copy of the repo Secret lives in this namespace (restic-secret.yaml).
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationDestination
+metadata:
+  name: forgejo-drill-restore
+  namespace: forgejo-drill
+spec:
+  # Manual trigger: runs once as soon as Flux creates the object.
+  trigger:
+    manual: restore-once
+  restic:
+    repository: forgejo-drill-restic
+    copyMethod: Snapshot
+    capacity: 10Gi
+    storageClassName: longhorn
+    cacheStorageClassName: longhorn
+    volumeSnapshotClassName: longhorn-snapshot-vsc
+    moverSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
