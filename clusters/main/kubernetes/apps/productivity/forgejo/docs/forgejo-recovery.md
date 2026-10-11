@@ -53,9 +53,15 @@ unsuspend Forgejo, and let it reconcile.
 
 ## Recovery to a fresh volume (safer)
 
-Omit `destinationPVC` and set `capacity` instead — VolSync creates a **new** PVC,
-named after the ReplicationDestination CR. Then point the HelmRelease at it and
-remove the old PVC.
+Omit `destinationPVC` and set `capacity` **and `accessModes`** instead — VolSync
+creates a **new** PVC, named after the ReplicationDestination CR. Without
+`destinationPVC`, `accessModes` is mandatory: VolSync rejects the object with
+`accessModes must be provided when destinationPVC is not` (hit during the
+2026-10-11 fire drill). Then point the HelmRelease at it and remove the old PVC.
+
+A **failed manual-trigger sync does not retry on its own** — a new sync only
+fires when the `trigger.manual` value changes (e.g. `restore-once` →
+`restore-once-2`).
 
 Note on the chart values: the forgejo chart has **no `existingClaim` key**.
 Reuse an existing PVC with `persistence.create: false` plus `persistence.claimName`
