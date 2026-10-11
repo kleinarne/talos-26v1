@@ -19,7 +19,10 @@ metadata:
   name: forgejo
   namespace: forgejo
 spec:
-  sourcePVC: forgejo-shared  # verify after first deploy: kubectl get pvc -n forgejo
+  # The official forgejo chart inherits the upstream gitea chart's naming:
+  # the data PVC is <release>-shared-storage, NOT forgejo-shared.
+  # Verified 2026-10-11: kubectl get pvc -n forgejo -> gitea-shared-storage
+  sourcePVC: gitea-shared-storage
   trigger:
     schedule: "7 1 * * *"
   restic:
