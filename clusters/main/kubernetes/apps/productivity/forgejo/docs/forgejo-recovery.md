@@ -114,10 +114,23 @@ that does not exist yet (hit during the 2026-10-11 fire drill).
 
 Recommended for fire drills: restore to a fresh volume, point a throwaway
 Forgejo instance at the snapshot-backed PVC, confirm it boots and repos are
-intact — without touching the live data. See `apps/testing/forgejo-drill/` for
-the drill implementation: everything is applied and torn down via repo
-commits. The restore lands in a VolumeSnapshot that `app/pvc.yaml` consumes
-into a PVC, which the throwaway HelmRelease mounts in its own namespace.
+intact — without touching the live data. The 2026-10-11 drill was implemented
+as repo-managed Flux objects under `apps/testing/forgejo-drill/` (git
+history: PRs #144–#147) and removed by the teardown commit; everything was
+applied and torn down via repo commits only. The restore landed in a
+VolumeSnapshot consumed into a PVC, which the throwaway HelmRelease mounted
+in its own namespace.
+
+Drill-specific chart gotchas (hit 2026-10-11): the chart creates a default
+admin user `gitea_admin` unless disabled — `gitea.admin.username` defaults to
+`gitea_admin`, so the init job seeds an extra admin into the restored data
+whenever the HelmRelease doesn't override `gitea.admin` (prod avoids this
+via `gitea.admin.existingSecret`). Future drills must set
+`gitea.admin.username: ""` (and no existingSecret) so no admin is seeded, and
+must verify the restore by logging in with restored PROD credentials —
+`gitea_admin` is chart-manufactured, not restored. Also note
+`passwordMode: keepUpdated` (chart default) resets the configured admin
+password on every pod recreation.
 
 ## Raw restic escape hatch
 
@@ -145,6 +158,15 @@ restic restore latest --target /mnt/restore
       (verified 2026-10-11; chart follows the upstream gitea naming, not `forgejo-shared`).
       The ReplicationSource pointed at `forgejo-shared` from 2026-10-08 to
       2026-10-11 and produced no backups in that window.
-- [ ] Storage class supports VolumeSnapshots (else switch `copyMethod` to `None`)
-- [ ] Mover can read the volume (uid/gid 1000 matches rootless chart)
-- [ ] Fire drill performed at least once
+- [x] Storage class supports VolumeSnapshots (else switch `copyMethod` to `None`)
+      (verified 2026-10-11 during the drill: the restic restore produced a ready
+      VolumeSnapshot via `longhorn-snapshot-vsc`, and Longhorn provisioned the
+      drill PVC from it via `dataSource`).
+- [x] Mover can read the volume (uid/gid 1000 matches rootless chart)
+      (verified 2026-10-11: the drill restore sync completed successfully with
+      `moverSecurityContext` uid/gid/fsGroup 1000).
+- [x] Fire drill performed at least once
+      (2026-10-11: full fresh-volume drill — Garage → restic restore →
+      VolumeSnapshot → PVC → throwaway Forgejo booted, prod-credentials login
+      verified. Prod had no repos yet, so content fidelity is still untested:
+      re-drill once real repos exist and a nightly backup has covered them.)
