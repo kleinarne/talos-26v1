@@ -60,8 +60,12 @@ Two Flux behaviors shape what imperative changes can achieve:
   - a Kyverno admission policy denying create/update on objects
     without Flux's managed-by label, with carve-outs for kube-system,
     the CNI, and Kyverno itself;
-  - CI-side `kustomize build` validation plus `flux diff` against a
-    read-only kubeconfig for drift on Flux-owned objects.
+  - CI-side rendering validation: `kustomize build` on all overlays
+    and `scripts/helm-render-diff.sh` for HelmRelease changes —
+    rendering only, no cluster credentials in CI. Drift on Flux-owned
+    objects is detected in-cluster by the controllers' native drift
+    detection (kustomize-controller apply dry-run each interval;
+    HelmRelease `spec.driftDetection` in warn mode), not by CI.
   Until both are deployed, suspended Kustomizations must be listed
   (`flux get ks`) as part of routine review; until then the gap is
   known and accepted, not covered by sync-status checks.
@@ -77,8 +81,9 @@ Two Flux behaviors shape what imperative changes can achieve:
 - Imperative edits to Flux-owned objects are futile past the next
   reconcile; `flux suspend` is the sanctioned way to hold state, at
   the cost of an explicit resume obligation.
-- Unmanaged-object drift stays invisible until the Kyverno policy and
-  `flux diff` CI are actually deployed.
+- Unmanaged-object drift stays invisible until the Kyverno policy is
+  deployed; drift on Flux-owned objects is covered by the
+  controllers' drift detection as soon as it is enabled.
 - Commits are currently not pre-validated for manifest correctness
   (gitleaks CI covers secrets, not manifests — known gap, closed by
-  the CI step above).
+  the CI rendering step above).
