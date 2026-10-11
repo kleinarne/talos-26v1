@@ -112,11 +112,12 @@ until the restore finishes, and helm's default readiness wait would stall
 the install for the full `timeout` (times remediation retries) on a PVC
 that does not exist yet (hit during the 2026-10-11 fire drill).
 
-Recommended for fire drills: restore to a fresh PVC, point a throwaway
-Forgejo instance at it, confirm it boots and repos are intact — without
-touching the live data. See `apps/testing/forgejo-drill/` for the drill
-implementation: everything is applied and torn down via repo commits, the
-throwaway instance runs in its own namespace on the restored PVC.
+Recommended for fire drills: restore to a fresh volume, point a throwaway
+Forgejo instance at the snapshot-backed PVC, confirm it boots and repos are
+intact — without touching the live data. See `apps/testing/forgejo-drill/` for
+the drill implementation: everything is applied and torn down via repo
+commits. The restore lands in a VolumeSnapshot that `app/pvc.yaml` consumes
+into a PVC, which the throwaway HelmRelease mounts in its own namespace.
 
 ## Raw restic escape hatch
 
