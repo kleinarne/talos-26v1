@@ -1,8 +1,9 @@
 ---
 # Throwaway Forgejo instance for the backup fire drill.
 # Same chart version as production (17.2.0 / Forgejo 15.0.9) so the restored
-# SQLite schema is not migrated. Pointed at the VolSync-restored PVC; the
-# live instance in the forgejo namespace is not touched.
+# SQLite schema is not migrated. Pointed at the PVC that pvc.yaml creates
+# from the restore snapshot; the live instance in the forgejo namespace is
+# not touched.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -35,8 +36,8 @@ spec:
       type: Recreate
     persistence:
       enabled: true
-      # Chart MUST NOT create its own PVC: use the one the
-      # ReplicationDestination restores into (named after the CR).
+      # Chart MUST NOT create its own PVC: use the one pvc.yaml provisions
+      # from the VolumeSnapshot reported by the ReplicationDestination.
       create: false
       claimName: forgejo-drill-restore
     gitea:

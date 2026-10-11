@@ -4,4 +4,5 @@ resources:
   - namespace.yaml
   - restic-secret.yaml
   - restore.yaml
+  - pvc.yaml
   - helm-release.yaml

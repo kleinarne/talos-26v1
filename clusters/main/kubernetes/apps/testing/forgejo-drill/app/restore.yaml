@@ -1,7 +1,10 @@
 ---
-# One-shot restore of the latest Forgejo backup snapshot into a FRESH PVC.
-# VolSync names the destination PVC after this CR: forgejo-drill-restore.
-# Copy of the repo Secret lives in this namespace (restic-secret.yaml).
+# One-shot restore of the latest Forgejo backup snapshot.
+# Without destinationPVC and with copyMethod: Snapshot, VolSync restores into
+# a scratch volume, snapshots it, and reports the resulting VolumeSnapshot in
+# .status.latestImage — NO PVC is left behind. The snapshot is consumed by
+# pvc.yaml (PVC with dataSource). Copy of the repo Secret lives in this
+# namespace (restic-secret.yaml).
 apiVersion: volsync.backube/v1alpha1
 kind: ReplicationDestination
 metadata:
