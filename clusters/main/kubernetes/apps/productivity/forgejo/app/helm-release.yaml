@@ -42,6 +42,11 @@ spec:
         server:
           DOMAIN: git.${DOMAIN_0}
           ROOT_URL: https://git.${DOMAIN_0}/
+          # Advertised SSH endpoint in clone URLs. Port 22 is TCP-proxied by
+          # nginx-external (values.tcp) to the forgejo-ssh service.
+          # Reachable on LAN/WireGuard only; no WAN port-forward exists.
+          SSH_DOMAIN: git.${DOMAIN_0}
+          SSH_PORT: 22
         database:
           DB_TYPE: sqlite3
         service:

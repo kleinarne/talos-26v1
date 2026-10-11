@@ -29,6 +29,11 @@ spec:
   uninstall:
     keepHistory: false
   values:
+    # TCP stream proxying for non-HTTP services through the single external
+    # LB IP (ingress only terminates HTTP(S)). Format: "<port>": "<ns>/<svc>:<port>"
+    # Docs: https://kubernetes.github.io/ingress-nginx/user-guide/exposing-tcp-udp-services/
+    tcp:
+      "22": forgejo/forgejo-ssh:22
     controller:
       replicaCount: 2
       service:
