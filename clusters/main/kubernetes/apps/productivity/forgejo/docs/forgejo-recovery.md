@@ -6,9 +6,11 @@ backup and recovery are explicit.
 
 ## What's backed up
 
-- `forgejo-shared` PVC (repos, SQLite DB, LFS, config) via restic
+- `gitea-shared-storage` PVC (repos, SQLite DB, LFS, config) via restic.
+  The official forgejo chart inherits the upstream gitea chart's PVC naming
+  (`<release>-shared-storage`) — it is NOT `forgejo-shared`.
 - Destination: Garage S3, path `${GARAGE_S3_URL}/${GARAGE_S3_BUCKET}/forgejo`
-- Schedule: nightly 01:07 (`7 1 * * *`); retention 7 daily / 5 weekly / 12 monthly
+- Schedule: nightly 01:07 UTC (`7 1 * * *`); retention 7 daily / 5 weekly / 12 monthly
 - Copy method: Snapshot (crash-consistent for SQLite — WAL makes this reliable)
 
 ## Recovery (in-place restore)
@@ -26,7 +28,7 @@ metadata:
 spec:
   trigger:
     manual: restore-once
-  destinationPVC: forgejo-shared        # overwrite existing PVC in place
+  destinationPVC: gitea-shared-storage    # overwrite existing PVC in place
   restic:
     repository: forgejo-backup-restic    # same Secret as the source
     copyMethod: Snapshot
@@ -86,7 +88,10 @@ restic restore latest --target /mnt/restore
 
 ## Preconditions to verify after first deploy
 
-- [ ] `kubectl get pvc -n forgejo` — PVC is actually named `forgejo-shared`
+- [x] `kubectl get pvc -n forgejo` — PVC is named `gitea-shared-storage`
+      (verified 2026-10-11; chart follows the upstream gitea naming, not `forgejo-shared`).
+      The ReplicationSource pointed at `forgejo-shared` from 2026-10-08 to
+      2026-10-11 and produced no backups in that window.
 - [ ] Storage class supports VolumeSnapshots (else switch `copyMethod` to `None`)
 - [ ] Mover can read the volume (uid/gid 1000 matches rootless chart)
 - [ ] Fire drill performed at least once
