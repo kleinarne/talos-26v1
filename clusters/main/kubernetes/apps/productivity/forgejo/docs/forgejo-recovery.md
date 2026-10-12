@@ -1,6 +1,6 @@
 # Forgejo backup & recovery
 
-Backup is a standalone VolSync `ReplicationSource` (see `app/backup.yaml`) — the
+Backup is a standalone VolSync`ReplicationSource`` (see `app/backup.yaml`) — the
 official Forgejo chart has no TrueCharts-style cnpg/volsync integration, so both
 backup and recovery are explicit.
 
@@ -12,6 +12,18 @@ backup and recovery are explicit.
 - Destination: Garage S3, path `${GARAGE_S3_URL}/${GARAGE_S3_BUCKET}/forgejo`
 - Schedule: nightly 01:07 UTC (`7 1 * * *`); retention 7 daily / 5 weekly / 12 monthly
 - Copy method: Snapshot (crash-consistent for SQLite — WAL makes this reliable)
+- Retention is per-day, not per-run: with `keep-daily`, restic keeps only the
+  most recent snapshot of each day. Running an extra same-day backup (as the
+  2026-10-12 accelerated one-shot for drill 2 did at 04:56 UTC) supersedes and
+  prunes that day's earlier nightly — afterwards there is one snapshot for the
+  day, not two (observed 2026-10-12).
+- On-disk layout on the PVC (verified 2026-10-12, chart 17.2.0): the chart sets
+  `WORK_PATH`/`APP_DATA_PATH` to `/data` and `repository.ROOT` to
+  `/data/git/gitea-repositories` — NOT the Forgejo default `git/repositories`.
+  The live SQLite DB is `/data/forgejo.db` (WAL mode, with `-wal`/`-shm`
+  siblings). `/data/gitea/gitea.db` is a stray leftover no instance uses (it
+  has no `repository` table) — when inspecting the database manually, use
+  `forgejo.db`, not the dead `gitea.db`.
 
 ## Recovery (in-place restore)
 
@@ -132,6 +144,17 @@ must verify the restore by logging in with restored PROD credentials —
 `passwordMode: keepUpdated` (chart default) resets the configured admin
 password on every pod recreation.
 
+Drill 2 (2026-10-12) re-ran the fresh-volume drill with real repos in the
+backup, closing the content-fidelity gap (git history: PRs #149–#152,
+including the temporary accelerated one-shot backup in #150, reverted in
+#151). Prod had two repos (`test`, `pkm`); both were present on the restored
+instance with content intact (README rendered). Two verification notes for
+future drills: the dashboard repo panel rendered empty while
+`/explore/repos` listed both repos with content — trust `/explore/repos`,
+not the dashboard; and the definitive content check is a `git clone` from
+the drill instance with `git rev-parse HEAD` compared against prod — run it
+before tearing the drill down.
+
 ## Raw restic escape hatch
 
 If the cluster itself is gone, the repo is plain restic in Garage:
@@ -139,11 +162,17 @@ If the cluster itself is gone, the repo is plain restic in Garage:
 ```sh
 export RESTIC_REPOSITORY='s3:https://<garage-url>/<bucket>/forgejo'
 export RESTIC_PASSWORD='<garage encryption key>'
-export AWS_ACCESS_KEY_ID=...  AWS_SECRET_ACCESS_KEY=...
+export AWS_ACCESS_KEY=...  AWS_SECRET_ACCESS_KEY=...
 
 restic snapshots
 restic restore latest --target /mnt/restore
 ```
+
+Restored layout (chart 17.2.0): data lands under `<target>/data` — repos in
+`<target>/data/git/gitea-repositories`, the live SQLite DB at
+`<target>/data/forgejo.db` (plus `-wal`/`-shm`).
+`<target>/data/gitea/gitea.db` is a stray leftover, not the live DB (see
+on-disk layout above).
 
 ## Rebuilding the cluster from scratch
 
@@ -168,5 +197,10 @@ restic restore latest --target /mnt/restore
 - [x] Fire drill performed at least once
       (2026-10-11: full fresh-volume drill — Garage → restic restore →
       VolumeSnapshot → PVC → throwaway Forgejo booted, prod-credentials login
-      verified. Prod had no repos yet, so content fidelity is still untested:
-      re-drill once real repos exist and a nightly backup has covered them.)
+      verified. Prod had no repos yet at that point.)
+- [x] Content fidelity re-drill with real repos
+      (2026-10-12: drill 2 — prod repos `test` and `pkm` covered by the 04:56
+      UTC backup were both restored with content; README rendered via
+      `/explore/repos`; login with restored prod credentials verified and
+      `gitea_admin` correctly absent. Clone-HEAD comparison against prod is
+      the definitive final check before teardown.)
