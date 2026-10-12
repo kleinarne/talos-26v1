@@ -24,11 +24,7 @@ spec:
   # Verified 2026-10-11: kubectl get pvc -n forgejo -> gitea-shared-storage
   sourcePVC: gitea-shared-storage
   trigger:
-    # TEMPORARY one-shot fire time (2026-10-12T04:56Z UTC) to accelerate
-    # the drill-2 content backup. Revert to "7 1 * * *" as soon as the
-    # accelerated sync completes — next cron occurrence after today is
-    # 2027, so the nightly is silently OFF until reverted.
-    schedule: "56 4 12 10 *"
+    schedule: "7 1 * * *"
   restic:
     copyMethod: Snapshot
     repository: forgejo-backup-restic
