@@ -1,10 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Phase 1 of the drill-2 content re-drill: namespace, restic credentials,
-# and the one-shot restore destination. pvc.yaml + helm-release.yaml follow
-# in a phase-2 commit, once the VolumeSnapshot name is known (read from the
-# ReplicationDestination .status.latestImage after the restore sync).
+# Drill-2 content re-drill, phase 2: consume the restore snapshot
+# (pvc.yaml) and boot a throwaway Forgejo on it (helm-release.yaml).
 resources:
   - namespace.yaml
   - restic-secret.yaml
   - restore.yaml
+  - pvc.yaml
+  - helm-release.yaml
