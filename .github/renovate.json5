@@ -8,6 +8,7 @@
     "github>trueforge-org/truecharts//.github/renovate/basics/labels.json5"
   ],
   "assignees": ["kleinarne"],
+  "timezone": "Europe/Berlin",
   "flux": {
     "fileMatch": ["/\\.yaml(?:\\.j2)?$/"]
   },
@@ -61,6 +62,14 @@
       ],
       "automerge": true,
       "addLabels": ["automerge"]
+    },
+    {
+  "description": ["Merge ingress-nginx updates only at night: upgrade blips land in the 23:00–06:00 window."],
+  "matchFileNames": [
+    "clusters/main/kubernetes/networking/nginx-internal/**",
+    "clusters/main/kubernetes/networking/nginx-external/**"
+  ],
+  "schedule": ["after 11pm and before 6am"]
     }
   ]
 }

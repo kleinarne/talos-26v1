@@ -79,6 +79,12 @@ spec:
     cnpg:
       main:
         enabled: true
+        cluster:
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 512Mi
         backups:
           enabled: true
           credentials: garage

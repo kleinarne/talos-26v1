@@ -45,6 +45,7 @@ nodes:
 controlPlane:
   patches:
     - '@./patches/controlplane.yaml'
+    - '@./patches/kubelet-qos.yaml'
   kernelModules:
     - name: nvme_tcp
     - name: vfio_pci

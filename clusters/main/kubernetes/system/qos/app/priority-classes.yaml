@@ -1,0 +1,22 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: critical
+value: 1000000
+description: "Stateful core (CNPG, storage, DNS, auth). May preempt bulk/ai."
+preemptionPolicy: PreemptLowerPriority
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: bulk
+value: -100
+description: "Media/testing. First to be preempted."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ai
+value: -1000
+description: "AI workloads. Lowest priority; never preempts anything."
+preemptionPolicy: Never
