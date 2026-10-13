@@ -40,6 +40,9 @@ for tool in git sops flux helm yq diff; do
   command -v "$tool" >/dev/null 2>&1 || fail "missing required tool: $tool"
 done
 
+yq --version 2>&1 | grep -qi mikefarah \
+  || fail "yq on PATH is not mikefarah v4 (got: $(command -v yq)) — install github.com/mikefarah/yq/v4"
+
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/hrdiff.XXXXXXXX")"
 chmod 700 "$WORK"
 cleanup() {
