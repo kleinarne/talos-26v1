@@ -33,6 +33,11 @@ spec:
     TZ: Europe/Berlin
     global:
       stopAll: false
+    resources:
+      requests:
+        memory: 1Gi
+      limits:
+        memory: 3Gi
     workload:
       main:
         podSpec:
@@ -57,6 +62,11 @@ spec:
       main:
         mode: recovery
         password: ${PAPERLESS_CNPG_PASSWORD}
+        resources:
+          requests:
+            memory: 128Mi
+          limits:
+            memory: 512Mi
         backups:
           enabled: true
           credentials: garage

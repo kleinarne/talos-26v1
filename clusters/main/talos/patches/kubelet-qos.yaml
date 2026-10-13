@@ -1,0 +1,11 @@
+machine:
+  kubelet:
+    extraConfig:
+      evictionHard:
+        memory.available: 1Gi
+        nodefs.available: 5%
+        imagefs.available: 5%
+      kubeReserved:
+        cpu: 200m
+        memory: 500Mi
+        ephemeral-storage: 2Gi

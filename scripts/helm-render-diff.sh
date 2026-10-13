@@ -40,6 +40,11 @@ for tool in git sops flux helm yq diff; do
   command -v "$tool" >/dev/null 2>&1 || fail "missing required tool: $tool"
 done
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-${REPO_ROOT}/age.agekey}"
+[ -f "$SOPS_AGE_KEY_FILE" ] \
+  || fail "age key not found: $SOPS_AGE_KEY_FILE — restore age.agekey at repo root (gitignored)"
+
 yq --version 2>&1 | grep -qi mikefarah \
   || fail "yq on PATH is not mikefarah v4 (got: $(command -v yq)) — install github.com/mikefarah/yq/v4"
 

@@ -50,6 +50,11 @@ spec:
       main:
         mode: recovery
         password: ${NEXTCLOUD_CNPG_PASSWORD}
+        resources:
+          requests:
+            memory: 250Mi
+          limits:
+            memory: 1Gi
         backups:
           enabled: true
           credentials: garage
