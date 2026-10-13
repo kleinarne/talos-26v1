@@ -45,11 +45,12 @@ spec:
     cnpg:
       main:
         enabled: true
-        resources:
-          requests:
-            memory: 128Mi
-          limits:
-            memory: 512Mi
+        cluster:
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 512Mi
     ingress:
       main:
         enabled: true

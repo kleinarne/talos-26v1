@@ -55,11 +55,12 @@ spec:
       main:
         mode: recovery
         password: ${VAULTWARDEN_CNPG_PASSWORD}
-        resources:
-          requests:
-            memory: 128Mi
-          limits:
-            memory: 512Mi
+        cluster:
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 512Mi
         backups:
           enabled: true
           credentials: garage
