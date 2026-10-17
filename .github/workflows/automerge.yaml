@@ -2,7 +2,7 @@ name: Automerge and Approve
 
 on:
   workflow_run:
-    workflows: ["Placeholder"]  # Name of the main CI workflow
+    workflows: ["Placeholder", "manifests"]  # CI workflows that must complete before automerge
     types:
       - completed
 
