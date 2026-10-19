@@ -34,7 +34,7 @@ jobs:
           for f in $(find clusters repositories -name 'ks.yaml' -o -name 'flux-entry.yaml' | sort); do
             p="$(yq eval '.spec.path' "$f")"
             [ -n "$p" ] || { echo "::error file=$f::Kustomization has no spec.path"; fail=1; continue; }
-            if [ ! -d "$p" ]; then echo "::error file=$f::path $p does not exist"; fail=1; continue; }
+            if [ ! -d "$p" ]; then echo "::error file=$f::path $p does not exist"; fail=1; continue; fi
             echo "::group::kustomize build $p"
             if kustomize build "$p" > /dev/null; then
               echo "ok $p"
