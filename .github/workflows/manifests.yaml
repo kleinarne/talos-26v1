@@ -15,19 +15,17 @@ concurrency:
 jobs:
   kustomize-build:
     name: kustomize build (all Flux roots)
-    # ubuntu-latest migrates to 26.04 from 2026-10-19 (actions/runner-images#14748);
-    # pin 24.04 until the new image is validated.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install kustomize and yq (pinned, sha256-verified)
         run: |
-          curl -sSL --fail --retry 3 --retry-delay 2 -o k.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz
+          curl -sSL -o k.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz
           echo "ea375e7372f9aa029129d4b2d16c66b7750b7f1213c4f66f910d981c895818d8  k.tgz" | sha256sum -c -
           tar xzf k.tgz && sudo install -m 0755 kustomize /usr/local/bin/kustomize
-          curl -sSL --fail --retry 3 --retry-delay 2 -o yq.tgz https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64.tar.gz
+          curl -sSL -o yq.tgz https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64.tar.gz
           echo "a347ccde5e32c607670e15526e295c58a555a68cbb36d15cf18d24fd7af0e2fd  yq.tgz" | sha256sum -c -
-          tar xzf yq.tgz && sudo install -m 0755 yq /usr/local/bin/yq
+          tar xzf yq.tgz && sudo install -m 0755 yq_linux_amd64 /usr/local/bin/yq
           kustomize version && yq --version
       - name: Build every Flux Kustomization root
         run: |
