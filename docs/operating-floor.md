@@ -63,6 +63,30 @@ only to commits:
   remembers.
 - AI actors: cite the file you read, not the search you ran.
 
+## Cluster-state verification (kubectl)
+
+- Kind names can be ambiguous across API groups, and this cluster has a
+  live collision: two CRDs register kind `Backup` —
+  `backups.longhorn.io` (Longhorn, shortname `lhb`, no backup targets
+  configured) and `backups.postgresql.cnpg.io` (CNPG, no shortname).
+  Any new chart can add another.
+- Plain `kubectl get backup` silently resolves to Longhorn's kind and
+  returns "No resources found" — observed 2026-10-16 and 2026-10-19,
+  traced via `kubectl get backup -v=6` to
+  `/apis/longhorn.io/v1beta2/backups`. kubectl does not error on
+  cross-group collisions; its priority-based resolver picks one group.
+- Fully qualify generic kind names on every read:
+  `kubectl get backup.postgresql.cnpg.io`,
+  `kubectl get cluster.postgresql.cnpg.io`, … Unqualified names are
+  acceptable only for kinds verified unambiguous on this cluster
+  (e.g. `scheduledbackup`).
+- An empty result from an ambiguous instrument means "unknown", never
+  "absent" (observed 2026-10-19: a false "zero Backup CRs" reading
+  triggered a multi-round investigation; the qualified census showed
+  ~31 completed backups per CNPG namespace).
+- To see which endpoint an unqualified command actually hits, append
+  `-v=6` and read the request URL.
+
 ## PKM vault seam
 
 - Tasks touching the PKM vault or its hosting follow vault rules
