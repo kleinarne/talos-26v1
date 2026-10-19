@@ -112,8 +112,12 @@ If these are gone, this document cannot help:
   coherent (2026-10-19 census), but a recovery-bootstrap drill has never
   been run. Until it has, Phase 4 CNPG restore is theory, consistent
   with this document's overall rehearsal gap.
-- **grafana's CNPG database has no backup config** (no barmanObjectStore,
-  no ScheduledBackup — only its VolSync PVC backup covers dashboards).
-  Fix: add the `cnpg.main.backups` + `credentials` blocks per the
-  pattern in the other six apps' values (draft in the Decision
-  Workbench local-AI brief, 2026-10-19 round 5-prep item 17).
+- **grafana is deliberately unbacked at the CNPG level** (decided
+  2026-10-19, superseding the previously drafted backups-block fix):
+  its database holds no durable content — zero custom dashboards
+  exist and the kube-prometheus-stack defaults are chart-provisioned
+  from this repo. Grafana is reconstructible from the Helm release
+  alone; the VolSync PVC layer remains as crash-snapshot insurance.
+  Revisit on the first dashboard created in the grafana UI: move it
+  to Git-provisioned dashboards or explicitly accept its loss; add a
+  CNPG backup config only if UI-created state cannot live in Git.
