@@ -1,0 +1,46 @@
+# Manifest validation per ADR-005 (enforcement): kustomize build on
+# every Flux-applied root, discovered from the Kustomization manifests
+# themselves. Rendering-only — no cluster credentials in CI.
+# helm-render-diff.sh stays on-host (requires the SOPS age key).
+name: manifests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.head_ref || github.ref }}-manifests
+
+jobs:
+  kustomize-build:
+    name: kustomize build (all Flux roots)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install kustomize and yq (pinned, sha256-verified)
+        run: |
+          curl -sSL -o k.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz
+          echo "ea375e7372f9aa029129d4b2d16c66b7750b7f1213c4f66f910d981c895818d8  k.tgz" | sha256sum -c -
+          tar xzf k.tgz && sudo install -m 0755 kustomize /usr/local/bin/kustomize
+          curl -sSL -o yq.tgz https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64.tar.gz
+          echo "a347ccde5e32c607670e15526e295c58a555a68cbb36d15cf18d24fd7af0e2fd  yq.tgz" | sha256sum -c -
+          tar xzf yq.tgz && sudo install -m 0755 yq_linux_amd64 /usr/local/bin/yq
+          kustomize version && yq --version
+      - name: Build every Flux Kustomization root
+        run: |
+          set -u
+          fail=0
+          for f in $(find clusters repositories -name 'ks.yaml' -o -name 'flux-entry.yaml' | sort); do
+            p="$(yq eval '.spec.path' "$f")"
+            [ -n "$p" ] || { echo "::error file=$f::Kustomization has no spec.path"; fail=1; continue; }
+            if [ ! -d "$p" ]; then echo "::error file=$f::path $p does not exist"; fail=1; continue; fi
+            echo "::group::kustomize build $p"
+            if kustomize build "$p" > /dev/null; then
+              echo "ok $p"
+            else
+              echo "::error file=$f::kustomize build failed for $p"; fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
