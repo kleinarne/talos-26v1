@@ -14,8 +14,14 @@ If these are gone, this document cannot help:
 1. This repository (public GitHub, clone on desktop as hedge)
 2. SOPS/age private key — password manager and/or paper copy (exact
    location deliberately not recorded in this public repo)
-3. VolSync/Restic backup data + CNPG backups in Garage buckets
-   **[VERIFY: what exactly is covered, retention]**
+3. VolSync/Restic backup data + CNPG backups in Garage buckets.
+   CNPG layer verified 2026-10-19: nightly barman base backups for every
+   CNPG database except grafana (see "Known gaps"), staggered ~00:25–01:01
+   UTC, plus continuous WAL archiving; ~30d recovery-window retention
+   (operator prunes store + Backup CRs at aging-out; verified by catalog
+   listing and CR census — 31 completed backups per database). Restore
+   targets/credentials live in the SOPS clusterenv (`credentials.garage`
+   block per app values). Note: schedules run UTC.
 4. The storage disks themselves (ZFS pools, confirmed on-host
    2026-10-10: boot-pool; whippedcream = 2 TB SSD mirror (upgraded from
    1 TB), hosts the Talos VM system zvol and other VM zvols; strawberry
@@ -52,7 +58,16 @@ If these are gone, this document cannot help:
 
 ### Phase 4 — Data
 - [ ] Restore PVCs via VolSync/Restic from Garage buckets
-- [ ] Restore CNPG databases from backups
+- [ ] Restore CNPG databases from backups — bootstrap each Cluster in
+      recovery mode against the same object store (TC values
+      `cnpg.main.mode: recovery` + `recovery.enabled: true`;
+      barmanObjectStore destinationPath, endpointURL, and S3 credentials
+      from the app's clusterenv values). Base backup + WAL = PITR from
+      the oldest retained backup (~30d window).
+- [ ] CAUTION when verifying: `kubectl get backup` resolves to
+      Longhorn's kind on this cluster and shows empty — always
+      `kubectl get backup.postgresql.cnpg.io -A` (see
+      docs/operating-floor.md, "Cluster-state verification").
 
 ### Phase 5 — Verification checklist (per service)
 - [ ] Blocky DNS (LAN hostname resolution — restores early or other
@@ -93,3 +108,12 @@ If these are gone, this document cannot help:
   recovery does not have to disambiguate zombie cluster_v3 copies.
 - **[FILL IN: secrets inventory — everything not covered by SOPS in the
   repo]**
+- **CNPG restores never exercised:** backups are proven present and
+  coherent (2026-10-19 census), but a recovery-bootstrap drill has never
+  been run. Until it has, Phase 4 CNPG restore is theory, consistent
+  with this document's overall rehearsal gap.
+- **grafana's CNPG database has no backup config** (no barmanObjectStore,
+  no ScheduledBackup — only its VolSync PVC backup covers dashboards).
+  Fix: add the `cnpg.main.backups` + `credentials` blocks per the
+  pattern in the other six apps' values (draft in the Decision
+  Workbench local-AI brief, 2026-10-19 round 5-prep item 17).
