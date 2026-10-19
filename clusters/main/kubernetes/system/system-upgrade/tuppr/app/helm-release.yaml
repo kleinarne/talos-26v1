@@ -11,4 +11,6 @@ spec:
     kind: OCIRepository
     name: tuppr
     namespace: flux-system     
+  driftDetection:
+    mode: warn
   values: {}
