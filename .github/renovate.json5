@@ -14,62 +14,13 @@
   },
   "packageRules": [
     {
+      "description": ["Pin kubelet to the 1.36.x line until the coordinated Talos 1.14 + k8s 1.37 upgrade (rationale: PR #12 close comment)."],
+      "matchPackageNames": ["ghcr.io/siderolabs/kubelet"],
+      "allowedVersions": ["1.36.x"]
+    },
+    {
       "description": ["Keep major updates manual, regardless of package."],
       "matchUpdateTypes": ["major"],
       "addLabels": ["type/major"],
       "automerge": false
     },
-    {
-      "description": ["Label minor updates like TrueCharts, without broad automerge."],
-      "matchUpdateTypes": ["minor"],
-      "addLabels": ["type/minor"]
-    },
-    {
-      "description": ["Label patch updates like TrueCharts, without broad automerge."],
-      "matchUpdateTypes": ["patch"],
-      "addLabels": ["type/patch"]
-    },
-    {
-      "description": ["Label digest updates like TrueCharts, without broad automerge."],
-      "matchUpdateTypes": ["digest"],
-      "addLabels": ["type/digest"]
-    },
-    {
-      "description": ["Label Helm updates like TrueCharts."],
-      "matchManagers": ["helmv3"],
-      "addLabels": ["renovate/helm"]
-    },
-    {
-      "description": ["Automerge minor updates, but exclude infrastructure."],
-      "matchUpdateTypes": ["minor"],
-      "matchPackageNames": [
-        "!/siderolabs/",
-        "!/flux-operator/",
-        "!/flux-instance/",
-        "!/longhorn/",
-        "!/cilium/"
-      ],
-      "automerge": true,
-      "addLabels": ["automerge"]
-    },
-    {
-      "description": ["Automerge patch updates, but exclude infrastructure."],
-      "matchUpdateTypes": ["patch"],
-      "matchPackageNames": [
-        "!/siderolabs/",
-        "!/flux-operator/",
-        "!/flux-instance/"
-      ],
-      "automerge": true,
-      "addLabels": ["automerge"]
-    },
-    {
-  "description": ["Merge ingress-nginx updates only at night: upgrade blips land in the 23:00–06:00 window."],
-  "matchFileNames": [
-    "clusters/main/kubernetes/networking/nginx-internal/**",
-    "clusters/main/kubernetes/networking/nginx-external/**"
-  ],
-  "schedule": ["after 11pm and before 6am"]
-    }
-  ]
-}
