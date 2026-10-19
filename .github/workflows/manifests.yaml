@@ -17,7 +17,7 @@ jobs:
     name: kustomize build (all Flux roots)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install kustomize and yq (pinned, sha256-verified)
         run: |
           curl -sSL -o k.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.7.1/kustomize_v5.7.1_linux_amd64.tar.gz
@@ -25,7 +25,7 @@ jobs:
           tar xzf k.tgz && sudo install -m 0755 kustomize /usr/local/bin/kustomize
           curl -sSL -o yq.tgz https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64.tar.gz
           echo "a347ccde5e32c607670e15526e295c58a555a68cbb36d15cf18d24fd7af0e2fd  yq.tgz" | sha256sum -c -
-          tar xzf yq.tgz && sudo install -m 0755 yq_linux_amd64 /usr/local/bin/yq
+          tar xzf yq.tgz && sudo install -m 0755 yq /usr/local/bin/yq
           kustomize version && yq --version
       - name: Build every Flux Kustomization root
         run: |
@@ -34,7 +34,7 @@ jobs:
           for f in $(find clusters repositories -name 'ks.yaml' -o -name 'flux-entry.yaml' | sort); do
             p="$(yq eval '.spec.path' "$f")"
             [ -n "$p" ] || { echo "::error file=$f::Kustomization has no spec.path"; fail=1; continue; }
-            if [ ! -d "$p" ]; then echo "::error file=$f::path $p does not exist"; fail=1; continue; fi
+            if [ ! -d "$p" ]; then echo "::error file=$f::path $p does not exist"; fail=1; continue; }
             echo "::group::kustomize build $p"
             if kustomize build "$p" > /dev/null; then
               echo "ok $p"
