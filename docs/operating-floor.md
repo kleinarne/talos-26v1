@@ -17,7 +17,7 @@ reviews must all assume it applies.
   Kustomization/HelmRelease, not imperative edits the next reconcile
   would revert.
 - Rebuild posture: repo + backups reproduce the cluster
-  (DISASTER-RECOVERY.md). Rationale: ADR-005 (Proposed, PR #132).
+  (DISASTER-RECOVERY.md). Rationale: ADR-005 (Accepted).
 
 ## Secrets
 
@@ -45,7 +45,7 @@ only to commits:
 - Drift on Flux-owned objects is detected in-cluster (controller
   apply dry-run each interval; HelmRelease `driftDetection`), not in
   CI. CI carries no cluster credentials. Rationale: ADR-005
-  enforcement steps (Proposed); ADR-007 (render-diff practice).
+  enforcement steps; ADR-007 (render-diff practice).
 
 ## Repo-state verification
 
