@@ -1,0 +1,11 @@
+# Namespace for the broker (Deployment + Service + clone job + PVC).
+# PSS restricted is enforced here on purpose: the broker pod is fully compliant
+# (runAsNonRoot, drop ALL, RuntimeDefault seccomp, read-only root fs).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: broker
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
