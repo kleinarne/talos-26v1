@@ -1,0 +1,7 @@
+# node-dns-patch.yaml
+machine:
+  network:
+    extraHostEntries:
+      - ip: ${NGINX_INTERNAL_IP}
+        aliases:
+          - git.${DOMAIN_0}     
