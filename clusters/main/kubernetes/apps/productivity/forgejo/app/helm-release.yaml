@@ -30,6 +30,18 @@ spec:
   uninstall:
     keepHistory: false
   values:
+    # App version pin: chart 17.3.1's default appVersion lags the app
+    # (15.0.10, v15 is past its support window). Moving the app via
+    # image.tag is the chart-sanctioned way; image.rootless (default
+    # true) appends the variant suffix, rendering
+    # code.forgejo.org/forgejo/forgejo:16.0.6-rootless.
+    # Hop 1 of the 15 -> 16 -> 17 upgrade (v17 is gated on the
+    # leading-slash link rendering in the vault). 17.0.0 is
+    # blacklisted: upstream #14866 writes an empty receive.hideRefs on
+    # upgrade, breaking every push/web-merge; fix staged in 17.0.1 —
+    # target that, never 17.0.0.
+    image:
+      tag: "16.0.6"
     strategy:
       type: Recreate
     persistence:
