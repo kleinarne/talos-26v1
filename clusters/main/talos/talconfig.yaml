@@ -42,6 +42,18 @@ nodes:
           ip: ${VIP}
     patches:
       - '@./patches/garbagecollection.yaml'
+      - |-
+        machine:
+          network:
+            extraHostEntries:
+              - ip: ${NGINX_INTERNAL_IP}
+                aliases:
+                  - git.${DOMAIN_0}
+          registries:
+            mirrors:
+              "git.${DOMAIN_0}":
+                endpoints:
+                  - http://${FORGEJO_CLUSTERIP}:3000
 controlPlane:
   patches:
     - '@./patches/controlplane.yaml'
