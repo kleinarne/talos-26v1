@@ -35,6 +35,13 @@ spec:
     persistence:
       enabled: true
       size: 10Gi
+    # Pin the forgejo-http ClusterIP: the Talos machine-config registry mirror
+    # (talconfig inline patch, PR companion) points at this IP, and unpinned a
+    # recreated Service gets a new ClusterIP, silently breaking node-level
+    # image pulls. Rendered from clusterenv via the usual var substitution.
+    service:
+      http:
+        clusterIP: ${FORGEJO_CLUSTERIP}
     gitea:
       admin:
         existingSecret: forgejo-admin-secret
