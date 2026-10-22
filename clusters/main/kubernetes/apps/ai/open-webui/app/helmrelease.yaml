@@ -20,6 +20,11 @@ spec:
         name: cluster
         namespace: flux-system
       interval: 24h
+      # Vendored chart: repackage whenever the git revision changes. The
+      # default (ChartVersion) only repackages on Chart.yaml version bumps —
+      # in-place chart fixes would keep serving a stale artifact (hit on
+      # 2026-10-22: post-render error persisted after PR #214 merged).
+      reconcileStrategy: Revision
   values:
     # Open WebUI — official Helm chart 17.0.0 (appVersion 0.12.0), VENDORED
     # from the upstream release tgz into chart/ (the published helm.openwebui.com
