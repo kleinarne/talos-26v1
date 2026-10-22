@@ -49,7 +49,7 @@ nodes:
             image: factory.talos.dev/metal-installer/82866c01b2842b490c27a6f1a4996aae05f096c83db40ecda166b03da9deae46:v1.13.10
           network:
             extraHostEntries:
-              - ip: ${NGINX_INTERNAL_IP}
+              - ip: ${NGINX_EXTERNAL_IP}
                 aliases:
                   - git.${DOMAIN_0}
           registries:
