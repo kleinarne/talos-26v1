@@ -1,0 +1,116 @@
+# Broker — mcpo + ptdgrp in one container (stdio child), serving OpenAPI on :8000.
+# Egress-only: ClusterIP service, no ingress, reachable only from Open WebUI.
+# Ingress = read-only /vault mount; staging writes are the glue's job (later ½-burst).
+#
+# Repo deltas vs. the burst package (defect fixes — see PR):
+# - vault + staging mounts: subPath moved onto the volumeMounts. The sync
+#   CronJob clones into <PVC>/vault and stages into <PVC>/staging, so both
+#   mounts need their subPath there; the package had it on the PVC volume
+#   source (invalid field) and the vault mount bare (would nest the repo
+#   one level down and break vault-relative link resolution).
+# - $(MCPO_API_KEY) is written doubled: Flux strict post-build envsubst
+#   parses every dollar in the rendered set (PR #176 incident class);
+#   $$ renders to $ (PR #177 proof), then kubelet expands $(MCPO_API_KEY)
+#   from the container env.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker
+  namespace: broker
+  labels:
+    app: broker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # single writer of nothing, but avoids two pods on the PVC ro-mount during rollout
+  selector:
+    matchLabels:
+      app: broker
+  template:
+    metadata:
+      labels:
+        app: broker
+    spec:
+      automountServiceAccountToken: false   # pod needs no API access
+      securityContext:
+        runAsNonRoot: true          # Stage-A A19: root bypasses DAC — this is the ro-enforcement knob
+        runAsUser: 1000             # node user in the image
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: forgejo-registry-pull
+      containers:
+        - name: broker
+          image: git.arneklein.net/kleinar/broker-mcp:v0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          # K8s expands $(VAR) from env into args (after Flux envsubst rendered $$ → $).
+          args:
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+            - --api-key
+            - $$(MCPO_API_KEY)
+            - --
+            - obsidian-vault-mcp
+            - --log-level        # CLI default is debug; broker runs at info (Stage-A production fact)
+            - info
+            - --vault
+            - /vault
+            - serve
+          env:
+            - name: MCPO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: broker-secrets
+                  key: mcpo-api-key
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: vault
+              mountPath: /vault
+              readOnly: true      # ptdgrp write tools fail closed at the filesystem
+              subPath: vault      # repo lives at <PVC>/vault (sync clones into it)
+            - name: staging
+              mountPath: /staging  # RW worktree for the staging glue; NOT exposed to MCP tools
+              subPath: staging
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: vault
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: staging
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: tmp
+          emptyDir: {}
