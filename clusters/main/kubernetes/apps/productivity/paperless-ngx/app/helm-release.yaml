@@ -63,6 +63,7 @@ spec:
         mode: recovery
         password: ${PAPERLESS_CNPG_PASSWORD}
         cluster:
+          instances: 1
           resources:
             requests:
               memory: 128Mi
