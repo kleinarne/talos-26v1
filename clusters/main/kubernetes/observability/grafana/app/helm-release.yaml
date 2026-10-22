@@ -46,6 +46,7 @@ spec:
       main:
         enabled: true
         cluster:
+          instances: 1
           resources:
             requests:
               memory: 128Mi

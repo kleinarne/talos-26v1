@@ -51,6 +51,7 @@ spec:
         mode: recovery
         password: ${NEXTCLOUD_CNPG_PASSWORD}
         cluster:
+          instances: 1
           resources:
             requests:
               memory: 250Mi
