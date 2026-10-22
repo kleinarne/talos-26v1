@@ -1,0 +1,37 @@
+# Clone/pull script shared by the recurring CronJob and one-off manual runs.
+# - First run: full clone of vault main from Forgejo (in-cluster service URL,
+#   token auth, zero DNS-split-horizon dependency).
+# - Later runs: fast-forward pull only. Divergence is an error (the broker
+#   must mirror merged-to-main state; unmerged desktop state stays invisible
+#   by design — the topology-enforced permission model).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-sync-script
+  namespace: broker
+data:
+  sync.sh: |
+    #!/bin/sh
+    set -eu
+    : "${VAULT_OWNER:=kleinar}"          # Forgejo owner of the vault repo
+    : "${VAULT_REPO:=pkm}"           # vault repo name
+    TOKEN="$(cat /secrets/forgejo-token)"
+    URL="http://x-access-token:${TOKEN}@forgejo-http.forgejo.svc.cluster.local:3000/${VAULT_OWNER}/${VAULT_REPO}.git"
+
+    mkdir -p /data/staging
+
+    if [ -d /data/vault/.git ]; then
+      echo "vault: pulling (ff-only)"
+      git -C /data/vault pull --ff-only
+    else
+      echo "vault: initial clone"
+      git clone "${URL}" /data/vault
+    fi
+
+    # Staging worktree dir for the future git staging-write glue (RW path,
+    # owned by the glue, never by the broker's MCP tools).
+    if [ ! -d /data/staging/.git ]; then
+      git -C /data/vault worktree add --detach /data/staging 2>/dev/null || true
+    fi
+
+    echo "vault: HEAD is $(git -C /data/vault rev-parse --short HEAD)"

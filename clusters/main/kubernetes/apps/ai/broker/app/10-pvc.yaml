@@ -1,0 +1,17 @@
+# Vault clone storage. RWX so the clone/pull CronJob (writer) and the broker
+# Deployment (reader) can mount the same volume from different pods.
+# Longhorn RWX goes through the share-manager; if you prefer a dedicated
+# storage class, set storageClass explicitly.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vault-clone
+  namespace: broker
+spec:
+  accessModes:
+    - ReadWriteMany
+  # storageClassName omitted = cluster default storage class. Set it
+  # explicitly if the default is not what you want for this volume.
+  resources:
+    requests:
+      storage: 5Gi
