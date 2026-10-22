@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 # -- Number of replicas
-replicaCount: ENC[AES256_GCM,data:tw==,iv:0aagKzJMT/9mAoBxcpoty+qlNYi6c+mRkZwBlpMHGyQ=,tag:ARKJHUFFfw8uCA0PFbqSFw==,type:int]
+replicaCount: 1
 # Knative configuration
 knative:
     # -- Enable Knative integration
@@ -14,7 +14,7 @@ knative:
     # -- Knative service response start timeout seconds
     responseStartTimeoutSeconds: 300
     # -- Knative service idle timeout seconds
-    idleTimeoutSeconds: ENC[AES256_GCM,data:rqC4,iv:ibYKSeTdkKkqTgkZHzS66zgqok00nRJEoZL4p64RTik=,tag:33iN5P3xqpZfl3c6m8gd2A==,type:int]
+    idleTimeoutSeconds: 300
     # -- Knative service annotations
     annotations: {}
     modelBootstrap:
@@ -59,7 +59,7 @@ ollama:
         # If you use MIG section below then this parameter is ignored
         number: 1
         # -- only for nvidia cards; change to (example) 'nvidia.com/mig-1g.10gb' to use MIG slice
-        nvidiaResource: ENC[AES256_GCM,data:HMZTMKKcktRo4VDlsc0=,iv:d+fVsseiXAzuzTtsQpsfmFOTfNH20tgUIV6/8z7Ci/A=,tag:DaoHkGxB2DAinDuv+K8Fdw==,type:str]
+        nvidiaResource: nvidia.com/gpu
         # nvidiaResource: "nvidia.com/mig-1g.10gb" # example
         # If you want to use more than one NVIDIA MIG you can use the following syntax (then nvidiaResource is ignored and only the configuration in the following MIG section is used)
         mig:
@@ -284,15 +284,15 @@ readinessProbe:
     successThreshold: 1
 # Configure autoscaling
 autoscaling:
-    #ENC[AES256_GCM,data:Oeu3GoL8tmBklQ/RWmc22lUNrCNM4w==,iv:3Os2VMq3DMzMRuo0bBk/UGrPfci57ei4sf27jhfk11M=,tag:ploqEUVo61xDntJUeDpIMA==,type:comment]
-    enabled: ENC[AES256_GCM,data:5wSNtKo=,iv:CY0qz9qLTW0W7ixkr4ttSVSjhtE7kN+ZPGtm7Ht28CU=,tag:db5uueDTus6Ut2GtY8Asvg==,type:bool]
-    #ENC[AES256_GCM,data:Wh0q2O2LaKvI94fgYnCdzaHUwgAb76CinvmjuHJp,iv:3wdl7gzZQWLxdflYkvwlJ1bgCrGty2ewqh8M39wXlQs=,tag:1gB1NsUbKI+Y9Ch5lfZ9Fg==,type:comment]
-    minReplicas: ENC[AES256_GCM,data:hA==,iv:2/VsYdvtpDPjtEZAZtYmXGDLPxBIKe848a1z6P9akBo=,tag:hgykqBKk01xREgvrWMRvew==,type:int]
-    #ENC[AES256_GCM,data:pFs56UpeJ6vmksgabngk99SZOxtwJQAAXuKpsEJk,iv:8YaPRaKYALb+hl3waYTboM2ftWcBmGOB3xt6Hmky5ok=,tag:/3oou/pbBxmlDFwCOJGOPA==,type:comment]
-    maxReplicas: ENC[AES256_GCM,data:zw/y,iv:iYTWyu/Jqt7ZlJ758lQQ1RsGY4/9B85vkyJXKfdzpiA=,tag:S11GfoMIpYWTEJpYWhagNw==,type:int]
-    #ENC[AES256_GCM,data:Zj3gaYPT1DwEAr60/EF+nAsdOziHGrvJjYfpnAszNg==,iv:OpbI9hdlAFb/2v+n6rKvOOhBRLDMovqvVGMuO/Z2mfg=,tag:1kO1siWdtAC5caFwD0ghwg==,type:comment]
-    targetCPUUtilizationPercentage: ENC[AES256_GCM,data:6Yk=,iv:oN2s/dmPejXlonJHY6nUsoBGYk6t+C6V7wA6ATE6SAo=,tag:Pf+EyYxpphPNpkOSUh96RA==,type:int]
-    #ENC[AES256_GCM,data:iESCJsxtbU/3oKXmbEYMkL8b1YDOAO05aFl3j1ez+08E6RhKN+ETES0=,iv:lMnc2KbZGqQi+G6jYgACjtvcLiSBnbbI/UzUl8t670Y=,tag:NCTH4X1CxaULYLjUlJaqcg==,type:comment]
+    # -- Enable autoscaling
+    enabled: false
+    # -- Number of minimum replicas
+    minReplicas: 1
+    # -- Number of maximum replicas
+    maxReplicas: 100
+    # -- CPU usage to target replica
+    targetCPUUtilizationPercentage: 80
+    # -- targetMemoryUtilizationPercentage: 80
 # -- Additional volumes on the output Deployment definition.
 volumes: []
 # -- - name: foo
@@ -380,7 +380,7 @@ initContainers: []
 # -- Use the host’s ipc namespace.
 hostIPC: false
 # -- Use the host’s pid namespace
-hostPID: ENC[AES256_GCM,data:7lAAbck=,iv:PIF6fhNsDqSB9miZrc892I5/GuEBecFqZ/X33/oVahA=,tag:kFK9uEzIPOTwbHwG6vuZqg==,type:bool]
+hostPID: false
 # -- Use the host's network namespace.
 hostNetwork: false
 # -- Extra K8s manifests to deploy
@@ -406,19 +406,3 @@ tests:
     # -- Annotations to add to the tests
     annotations: {}
 podSchedulerName: ""
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA2VWtSMW5FUkt6QjVJaXBH
-            cmxEMzBwUHRnOWlvenFhZjc2aGFXVytBS0hRCmRTMURRRXJGZU5XZElUMkgvMFcr
-            ZTFRbmdjUndFOTRTRTU0YlNBNWI2QncKLS0tIDMrZlgxVC93dXBtM0pPcWhzQjgw
-            UHZmN2I4V3pyM09aWmQ4U2FabEkrVXMKynKpmyM6u2Dtu55r7WrIOYwz1wZfdrG0
-            isWjE3ANFI5C24gaZxuKiC8k/7/oW747jQiJXO4AFkBQw/RYAidLnQ==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
-    encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T20:28:51Z"
-    mac: ENC[AES256_GCM,data:W0Yj/lY80O3mzzy6XtbmuaIk24FS3J/cmKd3x4He47WO3mQg5/uk7mMqPSHkt9TUAfJ8N5DG7ov1F5M98oxZC8bB7iIIxmNmM05DN+N6F/6hSmZAUziE+i4a5MuGnHk+fH+MUb5bSx64/jTLb7ktm5ksvRID8pPXJsAuM8fnbbE=,iv:uhsy56Yx+Dd2D/iWrOzNno1ScEEHs3Kr7UwcbFM/TGk=,tag:21Dfoikxj1r+dUintn0nOw==,type:str]
-    shamir_threshold: 3
-    version: 3.13.1

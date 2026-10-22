@@ -72,7 +72,7 @@ websocket:
     existingSecret: ""
     # -- Key within the existing secret that contains the Redis URL
     # @section -- Websocket configuration
-    existingSecretKey: ENC[AES256_GCM,data:9qreqoypEnT2,iv:ltLNUFtoESUW4vdGFWRHXNlNExCsjC//X/ODZmkmMCc=,tag:R5Zf6FoeMZkSx1FyRcPF8g==,type:str]
+    existingSecretKey: redis-url
     # -- Node selector for websocket pods
     # @section -- Websocket configuration
     nodeSelector: {}
@@ -167,7 +167,7 @@ podAnnotations: {}
 # -- Additional custom labels to add to the Open WebUI pods
 podLabels: {}
 # -- Number of Open WebUI replicas
-replicaCount: ENC[AES256_GCM,data:nw==,iv:eUtN42WoKWKV2r8F+FcyeMWRYLn5DuuL8/IwM43Twhk=,tag:kB0RmFReEvskucx7s6MuJg==,type:int]
+replicaCount: 1
 # -- Revision history limit for the workload manager (deployment).
 revisionHistoryLimit: 10
 # -- Priority class name for the Open WebUI pods
@@ -212,7 +212,7 @@ serviceAccount:
     annotations: {}
     # -- Automount service account token for the Open WebUI pods
     # @section -- Service Account configuration
-    automountServiceAccountToken: ENC[AES256_GCM,data:9spHCu0=,iv:o4HRJiluYhvNwpSXOy2HHQCdOxXmOJJAE3dSdCluUos=,tag:66HO8KQI67GT/V5M8ff/lA==,type:bool]
+    automountServiceAccountToken: false
 # -- Probe for liveness of the Open WebUI container
 # ref: <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes>
 # @section -- Probes configuration
@@ -254,18 +254,18 @@ copyAppData:
     # -- Resource requests and limits for the Open WebUI copy-app-data init container
     resources: {}
 managedCertificate:
-    #ENC[AES256_GCM,data:vncTKqt3TeSl9aKUyIwDYaRhqCPZ0fMXIsS4AjheG/xnHUXXph17zZqornVIQEdtIwU=,iv:yko67MvxO5LJw1Rj5dkdc5TMhe2aQhIKCWIi2mm6LLQ=,tag:ZQIo48YN9B/o9IgUwahyFA==,type:comment]
-    #ENC[AES256_GCM,data:PUYUfLlwcHU5XWSsAsRjF3ce9wiZHCEpodvr7epCUwtK8Q==,iv:QOZWr7ClPEwBzGYlKeCQOoJJBiPJHIvNG8LK/swf4+0=,tag:2o91rzw4j5eAjLy5+C1E4A==,type:comment]
-    enabled: ENC[AES256_GCM,data:Pb7QI2c=,iv:E5ebpuHkZBFTrywgMWp3OXGWDr2+0m6FDyE5AuVpgos=,tag:UtYxhfT4qFWuKcHEuaaxww==,type:bool]
-    #ENC[AES256_GCM,data:VKG7WH6bMYh6/4JDlzcOZlSxxMokQfHw5SajggLTOUOYnSqeHTC2EK5Wh8yH5wq1w12M16Zg,iv:C0uPjIsk0xIWXj1el6rcw7dnNGIl1D9yMkH6S0IDzU8=,tag:k07z5E3pA2XSVx1WkoubEw==,type:comment]
-    #ENC[AES256_GCM,data:mLQOz6MxWdA9YWccItcStXYsLG3KJMB/LvXnxU4n3c+r9g==,iv:lvokvKbIz4CJWCOyYu4kMqXwsSWhR+m996TU09YytQU=,tag:hIIHqEhyDjrLBEoT9w8qWQ==,type:comment]
-    #ENC[AES256_GCM,data:Qrp3srVLKt/OteYfBGz9gMTWD+KnI6Sa26m4mW2g9O5f1TzOYQ==,iv:YHGvpVRQ2CHrUrGSoETgwOFV+1vvtqpnPrzTKArh+vw=,tag:SRjx5FkvCqKQGf1JY6wmqw==,type:comment]
-    name: ENC[AES256_GCM,data:RBlY4ke724uNzlYS0xnx0k9u,iv:cttrAP2ybEJ9MVWqy2IuuwV/nZUeGwDzByhaklFegSk=,tag:2gO6d1+0jnysY8PydJXPog==,type:str]
-    #ENC[AES256_GCM,data:olZorypZGbRo3vBXZJiZjVucdqA8x11BLb1GtF5+KfLfzS8edktgleYxA0Twv7+5dA==,iv:+Tyh4hqiXV1JykvNPuUVEN+j9TtA7FtS8N+IB5Zsads=,tag:yraGmEKcDRWKyRCTapbmmw==,type:comment]
-    #ENC[AES256_GCM,data:8PqM7fDJKloE5Ch1R+LWiZxl8OKuntNv2JS6R4Git8P0JQ==,iv:p0qafs2XEWUsggxxB+g8ltE4+SoNafMcrwjKWK0+5u8=,tag:6wv++P4t7eECAI0QFxblsg==,type:comment]
+    # -- Enable GKE Managed Certificate for Ingress TLS
+    # @section -- Ingress configuration
+    enabled: false
+    # -- Name of the Managed Certificate resource to create
+    # @section -- Ingress configuration
+    # You can override this name if needed
+    name: mydomain-chat-cert
+    # -- Domains to include in the Managed Certificate
+    # @section -- Ingress configuration
     domains:
-        - ENC[AES256_GCM,data:Yot2/5ds88j+u/wirXngh7G9nYwPIxbnX7yR,iv:4JuMRU5T9cgplVDfZaIaxJHHHlbgjYqQXU7KTxKioNI=,tag:I1RGpJ3TNPqMXzWY/wMnCA==,type:comment]
-        - ENC[AES256_GCM,data:GYKXJf+Jr/yahJHKVxSPoA==,iv:wswbfFM9mjOC1s3KKAujRaGCpeXgJve4r7si68lX7aE=,tag:IyStRffDEYSjFvWGzwcL7g==,type:str]
+        # update to your real domain
+        - chat.example.com
 ingress:
     # -- Enable Ingress controller for Open WebUI
     # @section -- Ingress configuration
@@ -384,7 +384,7 @@ persistence:
     labels: {}
     # -- Sets the storage provider, availables values are `local`, `s3`, `gcs` or `azure`
     # @section -- Persistence configuration
-    provider: ENC[AES256_GCM,data:v7frwK0=,iv:bRuvN5l/xEeZAIf3GDqlMvu6FSbAbEnZnUc5U3TT1Is=,tag:N58iPuq4xeQW4A9OhKby0A==,type:str]
+    provider: local
     s3:
         # -- Sets the access key ID for S3 storage
         # @section -- Amazon S3 Storage configuration
@@ -493,7 +493,7 @@ openaiBaseApiUrls: []
 # - "https://api.company.openai.com/v1"
 # -- OpenAI API key to use. Default API key value for Pipelines if `openaiBaseApiUrl` is blank. Should be updated in a production deployment, or be changed to the required API key if not using Pipelines (ignored if openaiApiKeyExistingSecret is set)
 # @section -- OpenAI API configuration
-openaiApiKey: ENC[AES256_GCM,data:5Kg9ElnsTzBwtg==,iv:tpL2tvuUrxJWKayrb7/tnrXBxeF+n4U+l3HhuKVLaPM=,tag:OlJQgohH9vTVFkqFD5/M+A==,type:str]
+openaiApiKey: 0p3n-w3bu!
 # -- OpenAI API key from an existing secret
 # @section -- OpenAI API configuration
 openaiApiKeyExistingSecret: ""
@@ -609,7 +609,7 @@ sso:
     enableSignup: false
     # -- Allow logging into accounts that match email from OAuth provider (considered insecure)
     # @section -- SSO Configuration
-    mergeAccountsByEmail: ENC[AES256_GCM,data:chAX2zE=,iv:VKOpJZdMbd54uSUbNBziapG/o83KgU9XBv7dNP7KgxY=,tag:HVjX42SCmvNbNX4ZqogiVA==,type:bool]
+    mergeAccountsByEmail: false
     # -- Enable OAuth role management through access token roles claim
     # @section -- SSO Configuration
     enableRoleManagement: false
@@ -668,39 +668,39 @@ sso:
         # @section -- GitHub OAuth configuration
         clientExistingSecretKey: ""
     oidc:
-        #ENC[AES256_GCM,data:82edZRkEpQ71A/XpOK1XfdivywxUZV0Lgm0A5C5q,iv:zBApgv1qc3MC+0QS2ayTEekIqAX4Tbp4zUMB8dTDnPg=,tag:X0IUZPEWQu6qGnmVV2e2Wg==,type:comment]
-        #ENC[AES256_GCM,data:Au9gMmgYhpMc6fQgeVEWK3KoKqVxPV58BceVIIDQlw==,iv:/GH1DleDZQb52Y6sLZaxgDzYMZYiCnaYYljN4fQiMes=,tag:uVpy14YjihDkfK1pAzVZUQ==,type:comment]
-        enabled: ENC[AES256_GCM,data:TfhHTwY=,iv:zaiIp2R6XQeJczWYShhJWNt+ENRlXwPQPd5cdSt3s+I=,tag:Fi+2XbuwnH2krd6K1bZZhA==,type:bool]
-        #ENC[AES256_GCM,data:hjhZx8VE4PxMi9+ygLVv08Mx,iv:zVc5ILNlxkwBgN+GHi282PR86Zvya1N+/yDI60/8uX8=,tag:nOzzoifPNTpuwbl0K9HVCg==,type:comment]
-        #ENC[AES256_GCM,data:l9tnamaOHHVOc4MFF5ytr7LC/eAj/KB94dBWs2pXHw==,iv:pBHh2eJPCu3lcwKbTU4GuDeJE0ONxE72xite7BOC6HM=,tag:jPVMYjtSP5SpCnD/dZR1+Q==,type:comment]
+        # -- Enable OIDC authentication
+        # @section -- OIDC configuration
+        enabled: false
+        # -- OIDC client ID
+        # @section -- OIDC configuration
         clientId: ""
-        #ENC[AES256_GCM,data:DvH97w4zt7cOGqIH1paplqm20nWJR36ngOAnkV7OnZlIjxNd0otu7tYAjPoEOyrzNOIpu2fiYsezUSfBbtHK,iv:3HGCVgR7j2zMoKa7ti0aSH5/rJjmUkdDFgXxLwxFdFY=,tag:osp7USifqknSYfy1nKQvtA==,type:comment]
-        #ENC[AES256_GCM,data:ZRMAoia1M/A1M3IpB7YsV4jgoTS9zQ0ojVJv4Nt8IQ==,iv:qHYVhmkofiJr88cDag1MVC1q44RiipAeGH5vNtThUkA=,tag:T0zqs4muVjtg4dshlXaXdw==,type:comment]
+        # -- OIDC client secret (ignored if clientExistingSecret is set)
+        # @section -- OIDC configuration
         clientSecret: ""
-        #ENC[AES256_GCM,data:Q9W8d8Bt47Msuml2mcnlx5d8o59Ih8OnHDqii+ckxhA9hZWhOs2YwKfaSw==,iv:6D6AhX/B5zxdm5qtzlJ0ZwUvGI4Uv/5+C7Qyou+posA=,tag:Qn1QafuHMZeJvnc9wHdX9A==,type:comment]
-        #ENC[AES256_GCM,data:2+OYE6/qlYIBBibYKnDvjApFbUgk+Ly3wGSOiXxt1w==,iv:D0dGeFuI1/GwStCiYRbyDYvnjtAB9T+RWJT+4cKM+1w=,tag:ZZDRsnh13w6xpLbKetihTg==,type:comment]
+        # -- OICD client secret from existing secret
+        # @section -- OIDC configuration
         clientExistingSecret: ""
-        #ENC[AES256_GCM,data:QHSvJmOSIGlpxQxejr92cUk39xUb79H1zH/6xZkJEa4W2IY+3cchoEnqBg==,iv:2izGx/7oz2Zk9f42E8Y3xT4GVTrw6poQ4sDxEp7frp4=,tag:HK+yKctkhro6RcPxlwKMrg==,type:comment]
-        #ENC[AES256_GCM,data:ISxB5sN/Gnb7TFIzAhs/eBYPRSIZETPsziLaHcjukA==,iv:rBGXP1uUw+DpLs/t1xcD6evwD69PzTcuGsZOVdeaRbw=,tag:vviBVLIzbNbEORd3QCfgeQ==,type:comment]
+        # -- OIDC client ID key from existing secret
+        # @section -- OIDC configuration
         clientIdExistingSecretKey: ""
-        #ENC[AES256_GCM,data:dIqc42sOE4EPyTpht+HbDujPI0ZPMH5hvRKmAnrwXrYa8j4o83q+aZH21fKAkvY=,iv:mn8ZyxDAjDpuUMZQOmLPC0B9nengyksfRmUISOBhq78=,tag:9w7f/3PF3T1hCqpEu7Layg==,type:comment]
-        #ENC[AES256_GCM,data:oWLjFDQ7b3diU+RiY/5G63ztYbC8zHPgl/uH8YXW+Q==,iv:NU33RDeICdPK0LED6oAnZv4wLCLi8zqLm6nh4pI0Ygw=,tag:gRxRR2OIeZS9u3Vvyv6ILw==,type:comment]
+        # -- OIDC client secret key from existing secret
+        # @section -- OIDC configuration
         clientExistingSecretKey: ""
-        #ENC[AES256_GCM,data:ild1hH3xU3strBMbzj874UHdjifvFTQizfRURRfUORw=,iv:1GY4rUx327Q7637DQi5auJoTFkoOrrGRgY053GTpkDA=,tag:pd7C3NnnSUkcca0q+iweOg==,type:comment]
-        #ENC[AES256_GCM,data:xkPJs0IIjFNl+lZHUtDu36Hfuchb4s2yc3P5QI/RBQ==,iv:IQDlzd8E+yGPeXxaal+nAiZueKvutfSFJJDj0GjlbPM=,tag:sonbgippp62gCd5xDmzJGA==,type:comment]
+        # -- OIDC provider well known URL
+        # @section -- OIDC configuration
         providerUrl: ""
-        #ENC[AES256_GCM,data:XoguNdnBphOihjpPuykQw+YMSETyFlipplLyiRyrSfRlX6X3xP9NG5Y=,iv:JIVLL0XRkG/lUXQiG/iJ5vphjabbVdralMM3fBLcahU=,tag:2ClzB3VgDFcyOeFeq2IOIg==,type:comment]
-        #ENC[AES256_GCM,data:5CU+aAADlpwFbLwEXXS56Ghsji8HQbcOlWjoksFopg==,iv:wHfBr9c/BnSnxwu29xm7sdX6HqNEgtRXSbNwpY7O96g=,tag:aiq9U9ppYNG24dETWwcIrw==,type:comment]
+        # -- OIDC configuration existing configmap
+        # @section -- OIDC configuration
         existingConfig: ""
-        #ENC[AES256_GCM,data:8LifM4ebCjryQbADNEM4RzkXjTuXhi9fCpQiBfrswVYN82W+of3j3oLfAnt7O10mqWvF,iv:fDoPYRHIEOy3kGq3hnCHiJr31mWqQuSyqAsSTut9808=,tag:pePv0TSCfdO3RgN8neAk5A==,type:comment]
-        #ENC[AES256_GCM,data:TOR1iY7UNWFAM8P+R0yrCr53SAmXCriwEYSBCVX0Lw==,iv:XE4RNRx3YoFoWyysMtFMEZ5fJ9pXPRy/320ts/jzZwk=,tag:PcoDDeb997cGXMALQgUOUw==,type:comment]
+        # -- OIDC provider URL key in the existing configmap
+        # @section -- OIDC configuration
         existingConfigProviderUrlKey: ""
-        #ENC[AES256_GCM,data:tgdtgrXIzIanFAU8lDR8rgqJIaUKonIyn9AJYHUVoOQDPb/RnVcKF3U+,iv:f3zxUTP4xJUyEEQZCLZNO4lQQ2925iNWVUAasHwHN1s=,tag:nH3QHl9q8eb98IOf72yPRw==,type:comment]
-        #ENC[AES256_GCM,data:/Kp2n5xCNwXPPlEwwYUxxih4uGuc/dhm5bRToonP0Q==,iv:ME5GMCTPp4TTAyLy3G93vz91vvDcxsUL5aTAMt1Nw8w=,tag:QNQ1qgMX429zyhYbp16l+w==,type:comment]
-        providerName: ENC[AES256_GCM,data:xZgs,iv:FFBkYdILKh/tmrXOMJujbhEGe91ELD26HwS22Vhjgss=,tag:L9yHYTFU95yjxv7d9PMK0w==,type:str]
-        #ENC[AES256_GCM,data:GyN7OWP7x6ZSvpHqIcUrv0ClwW6JOD+HeHwdp144eUXVl98Fn7PFDw==,iv:ohRBLzkiibAMGOQapgUaaLdO49pjYy8b2bSYn77OncQ=,tag:JNh2N9TjlcN1IqmtAVJdwQ==,type:comment]
-        #ENC[AES256_GCM,data:syrO9HnD5aHqX54ctbHHbC4EwrtND3KoUoo5WF+ipg==,iv:0nalRiV+z/mv9dUBH0qPihEFg0oV5GOVcfxeu4XFKnA=,tag:ne6fykuaTuuV9ZiCV0SfGg==,type:comment]
-        scopes: ENC[AES256_GCM,data:/O5Tr5p9eNkOdACMdsRlao9Vp5g=,iv:CFhyuuQbEy2dlxPVKnFrQ1l0c5+Wa4F9HsXalTrtYcA=,tag:XtwicZK/C80uclHQLejCTQ==,type:str]
+        # -- Name of the provider to show on the UI
+        # @section -- OIDC configuration
+        providerName: SSO
+        # -- Scopes to request (space-separated).
+        # @section -- OIDC configuration
+        scopes: openid email profile
     roleManagement:
         # -- The claim that contains the roles (can be nested, e.g., user.roles)
         # @section -- Role management configuration
@@ -775,19 +775,3 @@ logging:
         # -- Set the log level for the Authentication Webhook component
         # @section -- Logging configuration
         webhook: ""
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtL3BxdnB3dTlJaHNiWTNa
-            Z250YWRNcCtBREV1K2F0U0l1QjBWeWtSMERzCnZEQjZTZ3k5d1d4NEtkTjF6eWV2
-            SUtmaUZrUllJd082UUVsQkdZaGhRMEUKLS0tIFFlcnUxa21PSUI4TXY3YnVqbjk3
-            MFR6LzNNb282VFBMcG4zd2RMM2JnclkK12DtofjCGZ/dgWneSNJi/7Qi+dJZ4N27
-            z6brdOsf+7ssvxlnhvIZNGFpgcOggBhrdtCHlkucarthIonrKtbnHQ==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
-    encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T20:28:51Z"
-    mac: ENC[AES256_GCM,data:T7mCDr+ePIo3odjfMhjuglJn5bDuibcCqxqBIrSti5bPamBNGcDJqZMH8r3yyHGVfvdDTMwRRJyeUKbPSk6+aAQOsdZBpDed/D4hhcwmMT92ClUtQ+ABOrDkjJkIuPH68URYNaLQlf4g/5Gx6+2Kkrpxk96Pk0hPB1Z4olCtgdA=,iv:5lKIgZW3p3tpevMafgkSKLd0fWgddp5DtXZ/mHgH3R4=,tag:0eQ9zbK44fnfzTIASpP2Bw==,type:str]
-    shamir_threshold: 3
-    version: 3.13.1

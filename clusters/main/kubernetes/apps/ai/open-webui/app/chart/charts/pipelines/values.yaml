@@ -7,7 +7,7 @@ extraLabels: {}
 annotations: {}
 podAnnotations: {}
 podLabels: {}
-replicaCount: ENC[AES256_GCM,data:1A==,iv:pAgOJ+vPPe1BK1TbWS2OoyMbId2wehUSHrjtzcUyGSQ=,tag:U5ezeZcomdaUtj6KjGGHzQ==,type:int]
+replicaCount: 1
 # -- Strategy for updating the deployment
 strategy: {}
 image:
@@ -43,7 +43,7 @@ serviceAccount:
     enable: true
     create: true
     name: ""
-    automountServiceAccountToken: ENC[AES256_GCM,data:iPzwz5M=,iv:w4Zermw1AMNkwk8kAzz8yDWbF7RBn6GBBoKllW0odmw=,tag:nMsjtruSTW9kzUSBVlhnRg==,type:bool]
+    automountServiceAccountToken: false
 # -- Configure pod security context
 # ref: <https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container>
 podSecurityContext: {}
@@ -144,19 +144,3 @@ extraResources: []
 #     namespace: "{{ .Release.Namespace }}"
 #   data:
 #     example-key: example-value
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBUZkh6V1VNUWhWcC9mQWlo
-            YXRXU1E0R3VINlBCQ2htdmI3d2FxUUJkbTFjCnBHaVJDbjNiNmVja29EUGk4NkxN
-            MndaK0NqUDZkZ1M5WGxxdDNKYzF6ajAKLS0tIDJYM3RxOGdVTHVhUEpSeXppMHhx
-            U1d0UDliWkdCd2JVZldiT2tITHBJVTgKYwBAP/iJFICllEuXYg5la0QBE6v/+Hxr
-            Nz5KktIwOBblVtP3t5xwR2e7WTSTwtDclJQd4K2S02SaCpPNDlTzqw==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
-    encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T20:28:51Z"
-    mac: ENC[AES256_GCM,data:CzhmGTwCli+c9gWhZIO7gSoVhBw9gxJOClx/6sIclMnf2Q5wtDzS36SOVJ/vXy7gs2mhChaeiya/o4Y9/rMTWnv/dkFVJZN8JlsoNbHnmRWa+aJhE0ye7c0neINIFL4xdK3kLaybQuAbRDrwcFlUnpoWAcMqp8okVrHLBO1Xagg=,iv:ag5pLymKdXTuyOuuInugKlGe5zLEWoVkxKoUdwtuir4=,tag:p1gJxk5DcGtar2u/Er4D6Q==,type:str]
-    shamir_threshold: 3
-    version: 3.13.1
