@@ -4,3 +4,6 @@ resources:
   - broker-secrets.secret.yaml
   - forgejo-registry-pull.secret.yaml
   - namespace.yaml
+  - 10-pvc.yaml
+  - 30-vault-sync-configmap.yaml
+  - 31-vault-sync-cronjob.yaml

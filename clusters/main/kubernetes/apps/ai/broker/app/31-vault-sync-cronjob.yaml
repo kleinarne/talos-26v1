@@ -1,0 +1,74 @@
+# Vault sync — recurring fast-forward pull + (first run) initial clone.
+# The broker mounts the result read-only, so this CronJob is the only writer
+# of /vault content via git.
+#
+# First/one-off run during the burst:
+#   kubectl create job --from=cronjob/vault-sync -n broker vault-sync-manual
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-sync
+  namespace: broker
+spec:
+  # :23 avoids the cluster's nightly backup window minutes (00:25-01:01).
+  schedule: "23 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: vault-sync
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: git-sync
+              image: alpine/git:2.47.2
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: VAULT_OWNER
+                  value: "kleinar"
+                - name: VAULT_REPO
+                  value: "pkm"
+                - name: HOME
+                  value: /tmp
+              volumeMounts:
+                - name: vault-data
+                  mountPath: /data
+                - name: secrets
+                  mountPath: /secrets
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+              command: ["/bin/sh", "/scripts/sync.sh"]
+          volumes:
+            - name: vault-data
+              persistentVolumeClaim:
+                claimName: vault-clone
+            - name: secrets
+              secret:
+                secretName: broker-secrets
+            - name: tmp
+              emptyDir: {}
+            - name: scripts
+              configMap:
+                name: vault-sync-script
+          nodeSelector: {}
