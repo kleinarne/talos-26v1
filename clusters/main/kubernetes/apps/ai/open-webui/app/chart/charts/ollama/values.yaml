@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 # -- Number of replicas
-replicaCount: ENC[AES256_GCM,data:EQ==,iv:qNmETd22om8kszij582R8DUZpyOjhquAXfGM/4j4XPA=,tag:X26v321b8si4YmIoKvlmwQ==,type:int]
+replicaCount: 1
 # Knative configuration
 knative:
     # -- Enable Knative integration
@@ -14,7 +14,7 @@ knative:
     # -- Knative service response start timeout seconds
     responseStartTimeoutSeconds: 300
     # -- Knative service idle timeout seconds
-    idleTimeoutSeconds: ENC[AES256_GCM,data:nRi8,iv:JxuMevtxIMbNrXT12snUgbvQZEfBtCnhnORW8Tz3VxA=,tag:rNbwQI8K774NzFoo+uNiqQ==,type:int]
+    idleTimeoutSeconds: 300
     # -- Knative service annotations
     annotations: {}
     modelBootstrap:
@@ -27,7 +27,7 @@ image:
     # -- Docker pull policy
     pullPolicy: IfNotPresent
     # -- Docker image tag, overrides the image tag whose default is the chart appVersion.
-    tag: "@sha256:2b8eecdb85aa6ea67c381c8ecffec04b2658496cf2821a8f88b0485bdff198e8"
+    tag: '@sha256:2b8eecdb85aa6ea67c381c8ecffec04b2658496cf2821a8f88b0485bdff198e8'
 # -- Docker registry secret names as an array
 imagePullSecrets: []
 # -- String to partially override template  (will maintain the release name)
@@ -59,7 +59,7 @@ ollama:
         # If you use MIG section below then this parameter is ignored
         number: 1
         # -- only for nvidia cards; change to (example) 'nvidia.com/mig-1g.10gb' to use MIG slice
-        nvidiaResource: ENC[AES256_GCM,data:noSK6ioAKzVXZVfGT04=,iv:pxe66PFLHo/PYF2tRlj+6BFvNHZFqLJfnhBFNiNH7vw=,tag:Jgdv+JmYeQy52/u4zjfX/w==,type:str]
+        nvidiaResource: nvidia.com/gpu
         # nvidiaResource: "nvidia.com/mig-1g.10gb" # example
         # If you want to use more than one NVIDIA MIG you can use the following syntax (then nvidiaResource is ignored and only the configuration in the following MIG section is used)
         mig:
@@ -284,15 +284,15 @@ readinessProbe:
     successThreshold: 1
 # Configure autoscaling
 autoscaling:
-    #ENC[AES256_GCM,data:qXI4tG/ZzsoGuBYOEj9kyUXYJ9Nsfg==,iv:66K6BV0lTNYkdf1Srrb2+ATu5dPdlOJtApecHFJQdb8=,tag:ZZZLEb1vvk2gLoV7ycqjGg==,type:comment]
-    enabled: ENC[AES256_GCM,data:8lLnuog=,iv:5KudTN5QtyT7kntFhijE0FhngaCcGCeA3v6OjInJ8us=,tag:FNYEPL5NWKJTgdl47ZConw==,type:bool]
-    #ENC[AES256_GCM,data:gpMHTXPy/kj1jC2PwPuqpxfY0UIT8vT53GfXgWGz,iv:4bwGXIzSvceg+nrCFgr5rbrrLCEf8wBct8agduvWi1E=,tag:iRpor1XkHhTLktaQLjx0rw==,type:comment]
-    minReplicas: ENC[AES256_GCM,data:Bg==,iv:nKTSwzr4yk+nIJQK5z+jkXQ3gVDiCTTgtM6+bGgOh5k=,tag:FTqhM6aMvVJ15b7TjHvCvw==,type:int]
-    #ENC[AES256_GCM,data:nncyfhSrBOshDWaoyafoWqnLLTrWWcjOy4BU6T/d,iv:vVjTVISVPclEFCmPs1e3LT/YTr95otw0aNS1nIWuYtI=,tag:jlvp6H2++1RB10zYPo/IUw==,type:comment]
-    maxReplicas: ENC[AES256_GCM,data:KhAk,iv:RdM4E7iGfp6B6CYCllRl8aa+D+c5JulRd84h+gKQ7X4=,tag:cNEXrbINA17NX+PkvOfYqA==,type:int]
-    #ENC[AES256_GCM,data:vjtnIk3YVqdOLIwYUh0F5x1PuwNgbWv/cdJPdbp32Q==,iv:NE3SnwfUE0dOQRivR0qbnmC9bNKxJ6mQPlhV5sF2I2U=,tag:iTJaXgt8A79c0rdM/6nNoA==,type:comment]
-    targetCPUUtilizationPercentage: ENC[AES256_GCM,data:6t8=,iv:+AeDuPa/dE5EZb9i/8LxmNHJfdM5/QrLcLzQUvxSjL8=,tag:a97IkvQe4AkEHULCFcDcXw==,type:int]
-    #ENC[AES256_GCM,data:vskZOSwWFAYfiEgqZHh+ofpScycgiKJdBl/WH14oazIxmSUPsTgY5nk=,iv:Dz4+95pRIjZJMd7KPe7q0EJF9Qa4KJDeGTqq3WL3T/Q=,tag:eiH4e+mRDvmHOe5wV7OPeg==,type:comment]
+    # -- Enable autoscaling
+    enabled: false
+    # -- Number of minimum replicas
+    minReplicas: 1
+    # -- Number of maximum replicas
+    maxReplicas: 100
+    # -- CPU usage to target replica
+    targetCPUUtilizationPercentage: 80
+    # -- targetMemoryUtilizationPercentage: 80
 # -- Additional volumes on the output Deployment definition.
 volumes: []
 # -- - name: foo
@@ -380,7 +380,7 @@ initContainers: []
 # -- Use the host’s ipc namespace.
 hostIPC: false
 # -- Use the host’s pid namespace
-hostPID: ENC[AES256_GCM,data:i4XLnn0=,iv:lhQIyXzfbFs3/E8GgVPvtyc0rET0faTnsSYnq9+0viw=,tag:IQ9G9G94LOU10RdIkcBp2A==,type:bool]
+hostPID: false
 # -- Use the host's network namespace.
 hostNetwork: false
 # -- Extra K8s manifests to deploy
@@ -406,19 +406,3 @@ tests:
     # -- Annotations to add to the tests
     annotations: {}
 podSchedulerName: ""
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBPbEErb2Q1VThDSGdMbWRj
-            eDdydFhQZXhiK0tvRDUweFhBZDhBbElGaHhVCllxTTNMZk9lNmExNFNTZFZPTFND
-            SXBha0Q0OUxsZzR4WWJHUUxtRkg3RjQKLS0tIFVJWEc4eHJpZzV2bGgzUHc4RElk
-            eTlOVVBieDdqdzhNenZCTHpyZUlNblkKCO5ssUBjYhrOkAJg8FrGG05Eip/uuLfd
-            8pTCyc97sKIeu2g6XO2lmEKzMmmmxxCdtiKXQlz3VYti6wdzVe3ZFg==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
-    encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T09:37:25Z"
-    mac: ENC[AES256_GCM,data:Jd0g/taKXH92JTjk7ZyzEFRsUz2HuBvNvMkSW/iiK9TSfsI9+nM0Ek5xrh2iRIclNF5VQhAr389YJZjAiDTYQCz5W1I5NzwqN56uersz/eFRbQRCz84gcYlb2/QfPgxu5n+eYUpsg/UxZZQN9VfuGtolOWxZi9WDRJKNYMn/yQE=,iv:9Tha51uMjJT8PEUZsCXYrSQybnYyyU8F8Mn7KUAW13c=,tag:RzpY0dTMW+Np130DLW7yfg==,type:str]
-    shamir_threshold: 3
-    version: 3.13.1

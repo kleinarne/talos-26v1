@@ -39,7 +39,7 @@ operator:
         repository: ghcr.io/open-webui/terminals-operator
         tag: latest@sha256:16249f2ed539f1bbcb4f24f0251accd198a895c584fca50374b3e4425074b200
         pullPolicy: IfNotPresent
-    replicaCount: ENC[AES256_GCM,data:vw==,iv:EOdZjZOb2Y+GNbu25dfC+vADhXW2maL+cE9eWhBT40w=,tag:R4rn9ib7A9X2E7mO4J1usg==,type:int]
+    replicaCount: 1
     resources:
         requests:
             cpu: 50m
@@ -87,7 +87,7 @@ orchestrator:
         repository: ghcr.io/open-webui/terminals
         tag: latest@sha256:7a18ec74e8386e2d0111465e6ad3fe899aa5912d1c80772f6a4c3aee95805e86
         pullPolicy: IfNotPresent
-    replicaCount: ENC[AES256_GCM,data:2w==,iv:jiBr7WuFXtEd0grOviUfPvtwIazLHOmFnvt4HiuXHLA=,tag:02B9Mk/l5JwbVg0v4NM79A==,type:int]
+    replicaCount: 1
     service:
         type: ClusterIP
         port: 8080
@@ -99,7 +99,7 @@ orchestrator:
     # -- Pull policy for the terminal image inside spawned pods
     terminalImagePullPolicy: IfNotPresent
     # -- Idle timeout in minutes for spawned terminal pods (0 = disabled)
-    idleTimeoutMinutes: ENC[AES256_GCM,data:pyk=,iv:9bpVc9YVHsr9u2fopW3zHtLLUSL+kecnXDBQJcnyYYk=,tag:nhNAfXRvwAPLJbah9Da3AQ==,type:int]
+    idleTimeoutMinutes: 30
     # -- Readiness probe for the orchestrator container. Set to null to disable.
     readinessProbe:
         httpGet:
@@ -172,19 +172,3 @@ networkPolicy:
         ingress: []
         # -- Custom egress rules for terminal pods
         egress: []
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBJYm5WYWNFOXlHNFdqaHkv
-            amd2ZmFsYkZudVVqY0grZ29wK0dUc2ZvV3dFClBYak9IZTN2T3FaMkhsaE5KeVBo
-            MXZ4aXNoWnZtU1Y2N0dFMUFxK2l0NTAKLS0tIGNLRkdJZjB1OUNXMmE3SnprdlNm
-            M3d1VnByRVA2czlMbDgyUGJmRUI4bkEKngudxjBE0GV+4sw017U7lqw+5Ue+5aja
-            O6BgGrvHB9k55fKoY1zE9n5v626O/kZhlaPZKTAGXuG4R65ZMmvzLg==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
-    encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T09:37:25Z"
-    mac: ENC[AES256_GCM,data:qLWy3zI203Wzmrn+SsPfL3bvNyHSbRQtfE4darY3O6zxyXSnZd9K2bh49TcG0RHTS0E61xMB6H4HhtIOoiVGY58UOcWl4lUIBWxkhlf5bQ/kW/0gQOXVz2o/SWmI3e5vAH48qsDozVaOD85dGjrtJnaqjV7tryqEQDSI7XKCrJw=,iv:BEulVD2zhMWHzeGcJzyrDKjJWUZIVsHQJk2ee72s3/0=,tag:RXldeANRVoK7RvF36zf/7g==,type:str]
-    shamir_threshold: 3
-    version: 3.13.1

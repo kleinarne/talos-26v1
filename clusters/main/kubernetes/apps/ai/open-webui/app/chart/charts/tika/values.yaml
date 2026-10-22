@@ -1,11 +1,11 @@
 affinity: {}
 autoscaling:
-    apiVersion: ENC[AES256_GCM,data:XA4AAfnRDLF8dU9MM1Q=,iv:oD9eZ6kg4d6Zeg7HSvMsbwZ1C4xaYHs2OcDBNkkRuys=,tag:VMH1l+QaGncwbeyXFP/8Hw==,type:str]
-    enabled: ENC[AES256_GCM,data:gFVpRVU=,iv:cn6cbun59CEC4eVaA0yqsNBA+lq/uUmecrZahvdhBBA=,tag:WiGulBkm53L+6sKsNBS3Tg==,type:bool]
-    maxReplicas: ENC[AES256_GCM,data:OT3Z,iv:xQLpU6OmolKN+OAJQ+4MLDDLIVGVuUFrUeQWFQYoJPc=,tag:asZ9hjaEjDyeyZCv7x3M8w==,type:int]
-    minReplicas: ENC[AES256_GCM,data:Xg==,iv:jX8gEqwoejrcWdIezY3wcZ5fWqowTizy663jd1ToxL4=,tag:n938FG56QyS8Iu+V3g1cHw==,type:int]
-    targetCPUUtilizationPercentage: ENC[AES256_GCM,data:dq4=,iv:QuUJVu+s0eZmBZf4b6O0yxzauZMpunnLLvhhLgWnZXA=,tag:PwtmdnJb3RXHcLgJiu/Czg==,type:int]
-    targetMemoryUtilizationPercentage: ENC[AES256_GCM,data:LEA=,iv:8AXi99OGVEyJmAD/+X3PlhVxjOGVvgPUkWJcwADQbj0=,tag:LU6Zjkc0Wnwa7mRJSwzvGw==,type:int]
+    apiVersion: autoscaling/v2
+    enabled: false
+    maxReplicas: 100
+    minReplicas: 1
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
 config:
     base_url: http://localhost/
 fullnameOverride: ""
@@ -41,7 +41,7 @@ readinessProbe:
     periodSeconds: 5
     scheme: HTTP
     timeoutSeconds: 30
-replicaCount: ENC[AES256_GCM,data:XA==,iv:/DleHdxgQMG/PiB0vwDDYNUaGKJ46cVBHyfBki9xHeM=,tag:TwzEL23opS8wMSjRl7mEkA==,type:int]
+replicaCount: 1
 resources:
     limits:
         cpu: "2"
@@ -50,10 +50,10 @@ resources:
         cpu: "1"
         memory: 1500Mi
 securityContext:
-    allowPrivilegeEscalation: ENC[AES256_GCM,data:Tfl23g==,iv:ikIZ5VUeLr3cgV4eiMzwqVvewttdk9/msEnzYk0sFOs=,tag:VRGSy+qUsDVQHFg4gYBIhg==,type:bool]
+    allowPrivilegeEscalation: true
     capabilities:
         drop:
-            - ENC[AES256_GCM,data:wtZi,iv:CM5lFJO+G6v1TNq0Kzp3pKmDTxW+d7fUStwzmEL1Q24=,tag:Hb0H1bSnj923orwK1bkNLA==,type:str]
+            - ALL
     readOnlyRootFilesystem: true
     runAsGroup: 35002
     runAsNonRoot: true
@@ -67,19 +67,3 @@ serviceAccount:
     name: ""
 tolerations: []
 topologySpreadConstraints: []
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBzYUVpR0xCQlpEbFpwN281
-            cVZ3WjFsMjV5cFFnWERwdTRid1k5S1AwT3dNClVtSVExbzcwa0tFVTBzSmdJMXZB
-            emJtT0FDVzUzc1hBWHRrbGcyZmRhMFUKLS0tIDF1NmRLL2NBRTZUNW9EN0dsRW9G
-            V1lSVERtN2JKUklKZ09NcGUzb0N4ZTAK5MJodJr9dcdsEgozws6AGOtYKDG+BrAZ
-            jMRv1Axl07/kyRkPSBwv6dIHZ0BjgoAeY4yuvhv2JrHyNaErdFKXRw==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
-    encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T09:37:25Z"
-    mac: ENC[AES256_GCM,data:mxgIk/q0UV52iNW+SkWr9TgQUOFL0yIemBI8VibB76T09JDGp8g6f/0zE0ChfYFck39kduc/1hJwz28QY3Oc4c2lNn1aoRMjF0GJfdscHfsiLgoB6paaEMIL+jHLCBia1i09H3XCd8ZhvONJkIoIJRz+iFQaAvG5NfHCA2OyKCY=,iv:C7TWrI8mQ7jDbAv5WAhib/ghX6aN1dkLj1BpQ2fjhGE=,tag:L0cHv9+UCVInKlJPMO94CQ==,type:str]
-    shamir_threshold: 3
-    version: 3.13.1
