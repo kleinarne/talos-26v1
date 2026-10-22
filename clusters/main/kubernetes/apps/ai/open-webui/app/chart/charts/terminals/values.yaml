@@ -37,7 +37,7 @@ terminalDefaults:
 operator:
     image:
         repository: ghcr.io/open-webui/terminals-operator
-        tag: latest
+        tag: latest@sha256:16249f2ed539f1bbcb4f24f0251accd198a895c584fca50374b3e4425074b200
         pullPolicy: IfNotPresent
     replicaCount: ENC[AES256_GCM,data:vw==,iv:EOdZjZOb2Y+GNbu25dfC+vADhXW2maL+cE9eWhBT40w=,tag:R4rn9ib7A9X2E7mO4J1usg==,type:int]
     resources:
@@ -85,7 +85,7 @@ operator:
 orchestrator:
     image:
         repository: ghcr.io/open-webui/terminals
-        tag: latest
+        tag: latest@sha256:7a18ec74e8386e2d0111465e6ad3fe899aa5912d1c80772f6a4c3aee95805e86
         pullPolicy: IfNotPresent
     replicaCount: ENC[AES256_GCM,data:2w==,iv:jiBr7WuFXtEd0grOviUfPvtwIazLHOmFnvt4HiuXHLA=,tag:02B9Mk/l5JwbVg0v4NM79A==,type:int]
     service:
@@ -95,7 +95,7 @@ orchestrator:
     # -- Backend type: kubernetes-operator, kubernetes, docker, local, static
     backend: kubernetes-operator
     # -- Default image for spawned terminal pods
-    terminalImage: ghcr.io/open-webui/open-terminal:latest
+    terminalImage: ghcr.io/open-webui/open-terminal:latest@sha256:b3a8f4bfb649824e686c3c7d60ab928553466023aba8ef46056d7deafc7a9392
     # -- Pull policy for the terminal image inside spawned pods
     terminalImagePullPolicy: IfNotPresent
     # -- Idle timeout in minutes for spawned terminal pods (0 = disabled)

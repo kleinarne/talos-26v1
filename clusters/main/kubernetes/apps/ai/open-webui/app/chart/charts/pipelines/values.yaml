@@ -12,7 +12,7 @@ replicaCount: ENC[AES256_GCM,data:eQ==,iv:v425UTMKzmpY0DHnq4chrcX6O8GK4ckfIFYFxD
 strategy: {}
 image:
     repository: ghcr.io/open-webui/pipelines
-    tag: main
+    tag: main@sha256:b48e9bc338ce2be0acfbeff01810db72408a12f07739f9e3879c1f2b00952d6e
     pullPolicy: Always
 # -- Configure imagePullSecrets to use private registry
 # ref: <https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry>
