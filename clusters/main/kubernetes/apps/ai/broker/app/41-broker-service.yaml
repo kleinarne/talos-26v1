@@ -1,0 +1,17 @@
+# Broker Service — ClusterIP only. Open WebUI (step 6) wires the tool
+# server URL http://broker-svc.broker.svc.cluster.local:8000 against it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: broker-svc
+  namespace: broker
+  labels:
+    app: broker
+spec:
+  type: ClusterIP
+  selector:
+    app: broker
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

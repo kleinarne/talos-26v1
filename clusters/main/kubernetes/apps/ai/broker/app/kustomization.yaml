@@ -7,3 +7,5 @@ resources:
   - 10-pvc.yaml
   - 30-vault-sync-configmap.yaml
   - 31-vault-sync-cronjob.yaml
+  - 40-broker-deployment.yaml
+  - 41-broker-service.yaml
