@@ -1,0 +1,7 @@
+# Namespace for Open WebUI. Deliberately NOT PSS-restricted: the upstream
+# image/container runs as root; hardening is a post-soak residue (the burst
+# decision recorded in the mesh-broker brief).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: open-webui
