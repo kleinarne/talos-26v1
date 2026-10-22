@@ -3,8 +3,8 @@
 # published helm.openwebui.com index currently carries only dev builds
 # (17.0.1-dev.N, appVersion dev — tracking image, unacceptable). Chart
 # templates are processed by Helm at HelmRelease reconcile time; the strict
-# postBuild envsubst never touches them. The values below contain no ${}
-# tokens.
+# postBuild envsubst never touches them. The values below are free of
+# substitution-variable syntax (envsubst-clean).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
