@@ -72,7 +72,7 @@ websocket:
     existingSecret: ""
     # -- Key within the existing secret that contains the Redis URL
     # @section -- Websocket configuration
-    existingSecretKey: ENC[AES256_GCM,data:geYHe8E6r8BB,iv:IVzjEDnkWps8pZSzHLv1s69fC1ZbErR7koS0udmnIlo=,tag:HkcuJxm/RyzEG6rAPKjx3A==,type:str]
+    existingSecretKey: ENC[AES256_GCM,data:9qreqoypEnT2,iv:ltLNUFtoESUW4vdGFWRHXNlNExCsjC//X/ODZmkmMCc=,tag:R5Zf6FoeMZkSx1FyRcPF8g==,type:str]
     # -- Node selector for websocket pods
     # @section -- Websocket configuration
     nodeSelector: {}
@@ -167,7 +167,7 @@ podAnnotations: {}
 # -- Additional custom labels to add to the Open WebUI pods
 podLabels: {}
 # -- Number of Open WebUI replicas
-replicaCount: ENC[AES256_GCM,data:Dg==,iv:j3yeGGnjAgJg9gQvjF9ax71kMDNbOaqrfxPknKeen60=,tag:s8beNFByvX2yagPBnjhJtw==,type:int]
+replicaCount: ENC[AES256_GCM,data:nw==,iv:eUtN42WoKWKV2r8F+FcyeMWRYLn5DuuL8/IwM43Twhk=,tag:kB0RmFReEvskucx7s6MuJg==,type:int]
 # -- Revision history limit for the workload manager (deployment).
 revisionHistoryLimit: 10
 # -- Priority class name for the Open WebUI pods
@@ -180,7 +180,7 @@ image:
     repository: ghcr.io/open-webui/open-webui
     # -- Open WebUI image tag (Open WebUI image tags can be found here: https://github.com/open-webui/open-webui)
     # @section -- Image configuration
-    tag: "@sha256:4860ba005ae8f19f08d1e12b0868855b7b339ea0dad9927f196820fc0de04575"
+    tag: '@sha256:4860ba005ae8f19f08d1e12b0868855b7b339ea0dad9927f196820fc0de04575'
     # -- Open WebUI image pull policy
     # @section -- Image configuration
     pullPolicy: IfNotPresent
@@ -212,7 +212,7 @@ serviceAccount:
     annotations: {}
     # -- Automount service account token for the Open WebUI pods
     # @section -- Service Account configuration
-    automountServiceAccountToken: ENC[AES256_GCM,data:9NWEuGI=,iv:U77O16mpIO9d/5ngnOmPZFumuhfqnwGnzDRWy1NbyHM=,tag:w2c8wOAeBiEOynSJUCMX/Q==,type:bool]
+    automountServiceAccountToken: ENC[AES256_GCM,data:9spHCu0=,iv:o4HRJiluYhvNwpSXOy2HHQCdOxXmOJJAE3dSdCluUos=,tag:66HO8KQI67GT/V5M8ff/lA==,type:bool]
 # -- Probe for liveness of the Open WebUI container
 # ref: <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes>
 # @section -- Probes configuration
@@ -254,17 +254,18 @@ copyAppData:
     # -- Resource requests and limits for the Open WebUI copy-app-data init container
     resources: {}
 managedCertificate:
-    #ENC[AES256_GCM,data:takGWyYMHgFBVYdKc4/2xJuJYyteOBmyrAKBpVhIIERQNOHve3QoRpCJGVeIayLgDJ0=,iv:9cismqUUDeD0lOm+qdq/qbwjc3dtQQrfiVsIYcKF9V0=,tag:9k+65UkD1ZouufeKyjPK0g==,type:comment]
-    #ENC[AES256_GCM,data:l6PMKhSVY0lyBBm5dwOdpD8hyWu8StiL7tILxRIUX4YpIw==,iv:huyQgzxN+/5XnxNGqnQ0/3vRykHVnPZoHccaeWVzdKU=,tag:J13khb/tV2z54AfH4LG0eg==,type:comment]
-    enabled: ENC[AES256_GCM,data:P1je3EU=,iv:lj1X6vunq8XgcaOVX2LCHbAkaFNgv2SKxdSXxoPjhtA=,tag:nSXwYVe9obziS57o2JEqbg==,type:bool]
-    #ENC[AES256_GCM,data:Yian2GlpAPlJdyLubJKNlli/P8neLXirYBoQe1Lmjj7NLJDtcP43nsXhvWfXOXTRPUJjXYxH,iv:7ivTcOvmXtZu9K2lZf7s16Hl7HS0wjHpsQlt1wpyJS4=,tag:gl2rOQQ9bONgUtpmtxpELA==,type:comment]
-    #ENC[AES256_GCM,data:44HhSOLEJgiCJLu6bRXcuSjdy8kJyUcVoulhVu3EDynuRw==,iv:ld5dXPO9oMkacSQsiGj7+pdQ+8SiSSWCnLBhNnWQKfQ=,tag:czDjTz11zTcWd2MS2sTscQ==,type:comment]
-    name: ENC[AES256_GCM,data:uZts0f4KtAWniIeNB55i9Rkl,iv:EKe28mRIesLOfi+NWvMpDTxdFwbx0Me4VdkhJvPwhBA=,tag:0f8kb3Y3r7t2MspLj5WGwA==,type:str] #ENC[AES256_GCM,data:RTqFeKBUCX4zRXkD8tl3aD1rgDToHdL4cQ3qw8CtQ/RKOj0YVw==,iv:+7x7PH7NtKBpTQGMZneizGBZCAZGPBUos40FnwIHmHc=,tag:FOpBFTpFqB65q/HLigrh5A==,type:comment]
-    #ENC[AES256_GCM,data:G11T0ivnW/lkRaZ4Sxcb5dasL3LG0Mn/u+kAtv4Y2nnTdXvPONw4Bhj34ybB/RAxCA==,iv:UjMFWKJkYm2+XGpMJQOhbujFBRqA69VB1MjirBXKYMg=,tag:4tu3Hdr3/C4xq8EydH1HAA==,type:comment]
-    #ENC[AES256_GCM,data:ODBOmjZv1qAl6EJx36MvsExO62/JoQlXCWzgJrO8fziRrg==,iv:RdznEbO3hoHiH8M2pSr4dsSsg+MytkvGyefOKT0Bi58=,tag:Ip8r0lRYfjhfJCpL6skKAw==,type:comment]
+    #ENC[AES256_GCM,data:vncTKqt3TeSl9aKUyIwDYaRhqCPZ0fMXIsS4AjheG/xnHUXXph17zZqornVIQEdtIwU=,iv:yko67MvxO5LJw1Rj5dkdc5TMhe2aQhIKCWIi2mm6LLQ=,tag:ZQIo48YN9B/o9IgUwahyFA==,type:comment]
+    #ENC[AES256_GCM,data:PUYUfLlwcHU5XWSsAsRjF3ce9wiZHCEpodvr7epCUwtK8Q==,iv:QOZWr7ClPEwBzGYlKeCQOoJJBiPJHIvNG8LK/swf4+0=,tag:2o91rzw4j5eAjLy5+C1E4A==,type:comment]
+    enabled: ENC[AES256_GCM,data:Pb7QI2c=,iv:E5ebpuHkZBFTrywgMWp3OXGWDr2+0m6FDyE5AuVpgos=,tag:UtYxhfT4qFWuKcHEuaaxww==,type:bool]
+    #ENC[AES256_GCM,data:VKG7WH6bMYh6/4JDlzcOZlSxxMokQfHw5SajggLTOUOYnSqeHTC2EK5Wh8yH5wq1w12M16Zg,iv:C0uPjIsk0xIWXj1el6rcw7dnNGIl1D9yMkH6S0IDzU8=,tag:k07z5E3pA2XSVx1WkoubEw==,type:comment]
+    #ENC[AES256_GCM,data:mLQOz6MxWdA9YWccItcStXYsLG3KJMB/LvXnxU4n3c+r9g==,iv:lvokvKbIz4CJWCOyYu4kMqXwsSWhR+m996TU09YytQU=,tag:hIIHqEhyDjrLBEoT9w8qWQ==,type:comment]
+    #ENC[AES256_GCM,data:Qrp3srVLKt/OteYfBGz9gMTWD+KnI6Sa26m4mW2g9O5f1TzOYQ==,iv:YHGvpVRQ2CHrUrGSoETgwOFV+1vvtqpnPrzTKArh+vw=,tag:SRjx5FkvCqKQGf1JY6wmqw==,type:comment]
+    name: ENC[AES256_GCM,data:RBlY4ke724uNzlYS0xnx0k9u,iv:cttrAP2ybEJ9MVWqy2IuuwV/nZUeGwDzByhaklFegSk=,tag:2gO6d1+0jnysY8PydJXPog==,type:str]
+    #ENC[AES256_GCM,data:olZorypZGbRo3vBXZJiZjVucdqA8x11BLb1GtF5+KfLfzS8edktgleYxA0Twv7+5dA==,iv:+Tyh4hqiXV1JykvNPuUVEN+j9TtA7FtS8N+IB5Zsads=,tag:yraGmEKcDRWKyRCTapbmmw==,type:comment]
+    #ENC[AES256_GCM,data:8PqM7fDJKloE5Ch1R+LWiZxl8OKuntNv2JS6R4Git8P0JQ==,iv:p0qafs2XEWUsggxxB+g8ltE4+SoNafMcrwjKWK0+5u8=,tag:6wv++P4t7eECAI0QFxblsg==,type:comment]
     domains:
-        - ENC[AES256_GCM,data:NSQJt7Bz5bXGF9ySdPBaijvsT0cynaAswyPr,iv:AQtq30tek1U2OXscpopyn/NDdiFUtC5ncr/cbCy06ZU=,tag:63QQ3gnof/MbSlnVRudt3A==,type:comment]
-        - ENC[AES256_GCM,data:wuIZtJw1FscqPQn9IMMoyw==,iv:gQmC8L66+8S3hWMf3wKEvdsYxjNCXuGxt7IwXR6OP24=,tag:caN1PvBJ/Kwf98nDJoTIhw==,type:str]
+        - ENC[AES256_GCM,data:Yot2/5ds88j+u/wirXngh7G9nYwPIxbnX7yR,iv:4JuMRU5T9cgplVDfZaIaxJHHHlbgjYqQXU7KTxKioNI=,tag:I1RGpJ3TNPqMXzWY/wMnCA==,type:comment]
+        - ENC[AES256_GCM,data:GYKXJf+Jr/yahJHKVxSPoA==,iv:wswbfFM9mjOC1s3KKAujRaGCpeXgJve4r7si68lX7aE=,tag:IyStRffDEYSjFvWGzwcL7g==,type:str]
 ingress:
     # -- Enable Ingress controller for Open WebUI
     # @section -- Ingress configuration
@@ -383,7 +384,7 @@ persistence:
     labels: {}
     # -- Sets the storage provider, availables values are `local`, `s3`, `gcs` or `azure`
     # @section -- Persistence configuration
-    provider: ENC[AES256_GCM,data:sZnrP1E=,iv:4go31YpwaWMacr+Mz5rxSxQ5FxnxsP34ooy8fD3T7+k=,tag:DNM14ToGGCm3XePMVER0Mg==,type:str]
+    provider: ENC[AES256_GCM,data:v7frwK0=,iv:bRuvN5l/xEeZAIf3GDqlMvu6FSbAbEnZnUc5U3TT1Is=,tag:N58iPuq4xeQW4A9OhKby0A==,type:str]
     s3:
         # -- Sets the access key ID for S3 storage
         # @section -- Amazon S3 Storage configuration
@@ -492,7 +493,7 @@ openaiBaseApiUrls: []
 # - "https://api.company.openai.com/v1"
 # -- OpenAI API key to use. Default API key value for Pipelines if `openaiBaseApiUrl` is blank. Should be updated in a production deployment, or be changed to the required API key if not using Pipelines (ignored if openaiApiKeyExistingSecret is set)
 # @section -- OpenAI API configuration
-openaiApiKey: ENC[AES256_GCM,data:v5l4pvYaJJzZbA==,iv:8CyDOFWdvImUO6CMgSazfILKVoICPygmaVp7p1UL4Po=,tag:q7FC7owqkVMSOWpzJX9Zhw==,type:str]
+openaiApiKey: ENC[AES256_GCM,data:5Kg9ElnsTzBwtg==,iv:tpL2tvuUrxJWKayrb7/tnrXBxeF+n4U+l3HhuKVLaPM=,tag:OlJQgohH9vTVFkqFD5/M+A==,type:str]
 # -- OpenAI API key from an existing secret
 # @section -- OpenAI API configuration
 openaiApiKeyExistingSecret: ""
@@ -608,7 +609,7 @@ sso:
     enableSignup: false
     # -- Allow logging into accounts that match email from OAuth provider (considered insecure)
     # @section -- SSO Configuration
-    mergeAccountsByEmail: ENC[AES256_GCM,data:8GaeOOI=,iv:oPvvvRYvr+bWqE8Ojl6If1vUUbxsvln2PlM9FG30eC4=,tag:Dazcxj9NcdV4ukkrJMFCXQ==,type:bool]
+    mergeAccountsByEmail: ENC[AES256_GCM,data:chAX2zE=,iv:VKOpJZdMbd54uSUbNBziapG/o83KgU9XBv7dNP7KgxY=,tag:HVjX42SCmvNbNX4ZqogiVA==,type:bool]
     # -- Enable OAuth role management through access token roles claim
     # @section -- SSO Configuration
     enableRoleManagement: false
@@ -667,39 +668,39 @@ sso:
         # @section -- GitHub OAuth configuration
         clientExistingSecretKey: ""
     oidc:
-        #ENC[AES256_GCM,data:JJTKIS5gK7H5UONKPG0sh5K/Bf+wJvZOyA5sKIQK,iv:qexhwCfFFQDbnDxmy9JcZPMhX0hp6XzN2tXr6JJdqXQ=,tag:BLnxWdeWu1Adi89Tm+EeQw==,type:comment]
-        #ENC[AES256_GCM,data:yEBlTJ1ZTcHyaBhLKTMOOizbaly8prAUfe3akvg/fQ==,iv:s2H0dV29P9eATG83+LRj1m3/+vI2kaZBo6GGYNKEud4=,tag:bMBQ8BuFXGuxkgYCJUO+5g==,type:comment]
-        enabled: ENC[AES256_GCM,data:Ooz4O34=,iv:nYXbydZPoCvJhR0Kh2yxXC5HowQFP1SJZ91+7i+gHfo=,tag:MTm2oBCRnF6DYVVacl1PmQ==,type:bool]
-        #ENC[AES256_GCM,data:VvjveqOB1z+qCic1IVjhnFL9,iv:0Bcclv74SRBov6Y8s4E8kCLgvKN8dri3b+PKJGRGs4A=,tag:fURN90KgBJUgWauvm1TqRQ==,type:comment]
-        #ENC[AES256_GCM,data:CN3YVzq+yYhfErOydob/4hYdNoRNLklUHwDyaUj5jg==,iv:r4nwAvf9fzj8RUcFDYmWGlAHK8jMjqw9WxTjZUi09DI=,tag:DXqLPvSNu0a9068IG5madQ==,type:comment]
+        #ENC[AES256_GCM,data:82edZRkEpQ71A/XpOK1XfdivywxUZV0Lgm0A5C5q,iv:zBApgv1qc3MC+0QS2ayTEekIqAX4Tbp4zUMB8dTDnPg=,tag:X0IUZPEWQu6qGnmVV2e2Wg==,type:comment]
+        #ENC[AES256_GCM,data:Au9gMmgYhpMc6fQgeVEWK3KoKqVxPV58BceVIIDQlw==,iv:/GH1DleDZQb52Y6sLZaxgDzYMZYiCnaYYljN4fQiMes=,tag:uVpy14YjihDkfK1pAzVZUQ==,type:comment]
+        enabled: ENC[AES256_GCM,data:TfhHTwY=,iv:zaiIp2R6XQeJczWYShhJWNt+ENRlXwPQPd5cdSt3s+I=,tag:Fi+2XbuwnH2krd6K1bZZhA==,type:bool]
+        #ENC[AES256_GCM,data:hjhZx8VE4PxMi9+ygLVv08Mx,iv:zVc5ILNlxkwBgN+GHi282PR86Zvya1N+/yDI60/8uX8=,tag:nOzzoifPNTpuwbl0K9HVCg==,type:comment]
+        #ENC[AES256_GCM,data:l9tnamaOHHVOc4MFF5ytr7LC/eAj/KB94dBWs2pXHw==,iv:pBHh2eJPCu3lcwKbTU4GuDeJE0ONxE72xite7BOC6HM=,tag:jPVMYjtSP5SpCnD/dZR1+Q==,type:comment]
         clientId: ""
-        #ENC[AES256_GCM,data:v24zJBQ11J6IwDdcp+TGei8Ad/YtpveP15b9M9EoOMW8gWD7+BDya5aLKV7fBzd3vAIKEawDjYGSXOqMf+Bf,iv:fSbgHUwafjmNPdpVG0fd5eg4Jjz4Lwpp/fkyUcoZKjE=,tag:LAkctp5CFKHL+9H4NTOi3Q==,type:comment]
-        #ENC[AES256_GCM,data:4r4Rp/d5QKbkKWTS6D2EPTLMxdLlbyXD0QSRvX74Iw==,iv:YHuURe9G4XjmlG/qes+w4gVgIB5TsPMeHWh4doB8JAI=,tag:XlceEPdMb0Ctg41OWdqc2w==,type:comment]
+        #ENC[AES256_GCM,data:DvH97w4zt7cOGqIH1paplqm20nWJR36ngOAnkV7OnZlIjxNd0otu7tYAjPoEOyrzNOIpu2fiYsezUSfBbtHK,iv:3HGCVgR7j2zMoKa7ti0aSH5/rJjmUkdDFgXxLwxFdFY=,tag:osp7USifqknSYfy1nKQvtA==,type:comment]
+        #ENC[AES256_GCM,data:ZRMAoia1M/A1M3IpB7YsV4jgoTS9zQ0ojVJv4Nt8IQ==,iv:qHYVhmkofiJr88cDag1MVC1q44RiipAeGH5vNtThUkA=,tag:T0zqs4muVjtg4dshlXaXdw==,type:comment]
         clientSecret: ""
-        #ENC[AES256_GCM,data:gccXocO3UBEOJL3xFi1zXmvPrdeR183NEcdzpIeiZqRc3esXyfqedaCfrw==,iv:WgWtkLyPgJDpcwloH2fMqUShQgMc9E8UemcgL+77Yis=,tag:ZmFBCfNy5/w8xDz21WKKDw==,type:comment]
-        #ENC[AES256_GCM,data:EhdOTmELAal8cEOnhZEViVnDjglY/JQtYWlme3tSGg==,iv:kL/1+bh5orycnvvwiKDaQ9pGc+/exeTGya1AjS23hho=,tag:s9HtP27fcqngGAHUJM/pJQ==,type:comment]
+        #ENC[AES256_GCM,data:Q9W8d8Bt47Msuml2mcnlx5d8o59Ih8OnHDqii+ckxhA9hZWhOs2YwKfaSw==,iv:6D6AhX/B5zxdm5qtzlJ0ZwUvGI4Uv/5+C7Qyou+posA=,tag:Qn1QafuHMZeJvnc9wHdX9A==,type:comment]
+        #ENC[AES256_GCM,data:2+OYE6/qlYIBBibYKnDvjApFbUgk+Ly3wGSOiXxt1w==,iv:D0dGeFuI1/GwStCiYRbyDYvnjtAB9T+RWJT+4cKM+1w=,tag:ZZDRsnh13w6xpLbKetihTg==,type:comment]
         clientExistingSecret: ""
-        #ENC[AES256_GCM,data:dfGEpAA74Meq809Mhj8pjLJbYEi+f9Ge0v+tDFj8imHDt8b5V3/znW9K6Q==,iv:ViVfzxFjwlw6vOZavEARMPDvuW45AqSrUOD7mgDl2UY=,tag:aGCykbCgo6MhmsjEKSQW2A==,type:comment]
-        #ENC[AES256_GCM,data:vR7OfyJKzBrESCiPZQyj5aS3QpuQ6Ze1fCY/VRx1OA==,iv:tQ1xymjtvbJHmdfAl2biWWztTvENyDA+KfR7iqjb79E=,tag:l0l1hFcj1s4eZW3fk38/5A==,type:comment]
+        #ENC[AES256_GCM,data:QHSvJmOSIGlpxQxejr92cUk39xUb79H1zH/6xZkJEa4W2IY+3cchoEnqBg==,iv:2izGx/7oz2Zk9f42E8Y3xT4GVTrw6poQ4sDxEp7frp4=,tag:HK+yKctkhro6RcPxlwKMrg==,type:comment]
+        #ENC[AES256_GCM,data:ISxB5sN/Gnb7TFIzAhs/eBYPRSIZETPsziLaHcjukA==,iv:rBGXP1uUw+DpLs/t1xcD6evwD69PzTcuGsZOVdeaRbw=,tag:vviBVLIzbNbEORd3QCfgeQ==,type:comment]
         clientIdExistingSecretKey: ""
-        #ENC[AES256_GCM,data:knAOezpPAG1QCyo5CfYJL/ivhKF/pup/0rPAsH3suEVctiiMOmp722YxAoOsnlY=,iv:W9evQ3n8pg4ZJTwyPCGqTWbnvs1Pp5fIYxOkdb4IyWk=,tag:SQzALrdNeuI+BDGnoQuMwg==,type:comment]
-        #ENC[AES256_GCM,data:L9tNvcIeeP+LC8OT49hUDs4aXc2a/n4ZlEF++eyWpQ==,iv:jS2a+RjxIycKnVe7vqDmb8JC0YpYT9kB+ZpJAtf/VOQ=,tag:4S1qsj6CaL07Oejd+nVA/w==,type:comment]
+        #ENC[AES256_GCM,data:dIqc42sOE4EPyTpht+HbDujPI0ZPMH5hvRKmAnrwXrYa8j4o83q+aZH21fKAkvY=,iv:mn8ZyxDAjDpuUMZQOmLPC0B9nengyksfRmUISOBhq78=,tag:9w7f/3PF3T1hCqpEu7Layg==,type:comment]
+        #ENC[AES256_GCM,data:oWLjFDQ7b3diU+RiY/5G63ztYbC8zHPgl/uH8YXW+Q==,iv:NU33RDeICdPK0LED6oAnZv4wLCLi8zqLm6nh4pI0Ygw=,tag:gRxRR2OIeZS9u3Vvyv6ILw==,type:comment]
         clientExistingSecretKey: ""
-        #ENC[AES256_GCM,data:VZK3dHdSBfFxEcxcx3nflHSAS9ICNXGTuuR06y2lUOI=,iv:haPcHOyrcpEJQrhy+xmHuipmsdVDKnATxGVuPMNGFQo=,tag:rd5yrB/spI6j42fHJdJCDA==,type:comment]
-        #ENC[AES256_GCM,data:9sE+AN8MJkmy4QoNis4WdJMEcuG0amZj9RUSd80XzQ==,iv:ByBwvEdJ3mnKcNX3iM8NBmO2SjMbZCg5134W3JmqP7U=,tag:GFhQMV4GDOaXhCgVnjIGFQ==,type:comment]
+        #ENC[AES256_GCM,data:ild1hH3xU3strBMbzj874UHdjifvFTQizfRURRfUORw=,iv:1GY4rUx327Q7637DQi5auJoTFkoOrrGRgY053GTpkDA=,tag:pd7C3NnnSUkcca0q+iweOg==,type:comment]
+        #ENC[AES256_GCM,data:xkPJs0IIjFNl+lZHUtDu36Hfuchb4s2yc3P5QI/RBQ==,iv:IQDlzd8E+yGPeXxaal+nAiZueKvutfSFJJDj0GjlbPM=,tag:sonbgippp62gCd5xDmzJGA==,type:comment]
         providerUrl: ""
-        #ENC[AES256_GCM,data:/sXjL3nU2Xq+sKM/s5sN3VT/8VX7lmW5L7IxhPopQGQ2rsyiG6qFp8s=,iv:5LjdymzBoeuLJR/6AQ1x4MPU4tCqwmZeB2jv+y8tgb4=,tag:1nvH714Esscy3MysxCuhVw==,type:comment]
-        #ENC[AES256_GCM,data:a09uTAQg9pfT5/lHZCd1rqOXPRzovfLjQQB3+UqdOw==,iv:tcHPWrCY/JwShXLzeYRG6xdDYhOebrC9tUDhi/gHZuo=,tag:PQ2txIzfECe8snhcZmRp+w==,type:comment]
+        #ENC[AES256_GCM,data:XoguNdnBphOihjpPuykQw+YMSETyFlipplLyiRyrSfRlX6X3xP9NG5Y=,iv:JIVLL0XRkG/lUXQiG/iJ5vphjabbVdralMM3fBLcahU=,tag:2ClzB3VgDFcyOeFeq2IOIg==,type:comment]
+        #ENC[AES256_GCM,data:5CU+aAADlpwFbLwEXXS56Ghsji8HQbcOlWjoksFopg==,iv:wHfBr9c/BnSnxwu29xm7sdX6HqNEgtRXSbNwpY7O96g=,tag:aiq9U9ppYNG24dETWwcIrw==,type:comment]
         existingConfig: ""
-        #ENC[AES256_GCM,data:cN59hf2ZEi1ECiN49f9vG1sUYNT7WqFn4fynoGGeRbDU+Ujv7NNXcr1zdkV/QpMiVrQW,iv:axah2q8a7OKdsiqZnBh423McZOEJhA0xvfudYLeS2q0=,tag:xDARuI/0IIpONCemcsbXew==,type:comment]
-        #ENC[AES256_GCM,data:DkRc57pk5wy9/5buKdCBR2qt3BrT6m2KzveVxVlx7w==,iv:Opn3wNCJEeLjvLUQrFkoS+4puHWrSIBv8E3XI1dJDa4=,tag:9er21eZBNiefLSpL8azhFA==,type:comment]
+        #ENC[AES256_GCM,data:8LifM4ebCjryQbADNEM4RzkXjTuXhi9fCpQiBfrswVYN82W+of3j3oLfAnt7O10mqWvF,iv:fDoPYRHIEOy3kGq3hnCHiJr31mWqQuSyqAsSTut9808=,tag:pePv0TSCfdO3RgN8neAk5A==,type:comment]
+        #ENC[AES256_GCM,data:TOR1iY7UNWFAM8P+R0yrCr53SAmXCriwEYSBCVX0Lw==,iv:XE4RNRx3YoFoWyysMtFMEZ5fJ9pXPRy/320ts/jzZwk=,tag:PcoDDeb997cGXMALQgUOUw==,type:comment]
         existingConfigProviderUrlKey: ""
-        #ENC[AES256_GCM,data:GZEDGMQzwscB6nJM21RXcYuyujIidFFn0lT1AAF7glwwvsYnhGrElAgn,iv:lPH1AOjTX60klmXpSzC2M4S1DUwW4Q1lkRcGHsnk4rg=,tag:1CJKBXVErTmdZAzNyTMQxw==,type:comment]
-        #ENC[AES256_GCM,data:JhcXXVjv1AeFySMBhIdAB3gD8WTBSxruVzueLlamPg==,iv:xhieqDFaEdHi6zmv0dIwHrImj214U5eLzy8ABHt05Q8=,tag:qW0RRW1Mg8cs20mE6355Aw==,type:comment]
-        providerName: ENC[AES256_GCM,data:Mzur,iv:yUkOpUG5srZUcluVyazjWJ7l63UO68i5B3iVX++JZ24=,tag:wwBTlQdYkXnsu2JsTxFSTg==,type:str]
-        #ENC[AES256_GCM,data:4aaeATxJ9ogaRqx0bFDh+eJm8aSAKL7IzJBEzLsVyqVy5w3v03cOdQ==,iv:GS6wgrONJfBXiLFFQ5JgzwBae5vnn9ZVFR7EDvUv+Cw=,tag:RKyj5PUEUE/wCoLqXQUGwQ==,type:comment]
-        #ENC[AES256_GCM,data:OcMDzZXT9QWZVwGTV3AmX9l0a7avwIqWRyhqxVi02w==,iv:/7eA+AUYtwXNhtH3J9ogPqqLpvsUn0GzA2VNa1BDQkg=,tag:IlHBRJQK046aSs+YKc1CAg==,type:comment]
-        scopes: ENC[AES256_GCM,data:UcdkrDHdUkEK0lo1b8CIyL8FmSg=,iv:OV4axvPuX42UQayRnQF2Mz/ykR64lHwqH4pDb6E9Kyc=,tag:XYuqIK+H8OUu4CutuLofYw==,type:str]
+        #ENC[AES256_GCM,data:tgdtgrXIzIanFAU8lDR8rgqJIaUKonIyn9AJYHUVoOQDPb/RnVcKF3U+,iv:f3zxUTP4xJUyEEQZCLZNO4lQQ2925iNWVUAasHwHN1s=,tag:nH3QHl9q8eb98IOf72yPRw==,type:comment]
+        #ENC[AES256_GCM,data:/Kp2n5xCNwXPPlEwwYUxxih4uGuc/dhm5bRToonP0Q==,iv:ME5GMCTPp4TTAyLy3G93vz91vvDcxsUL5aTAMt1Nw8w=,tag:QNQ1qgMX429zyhYbp16l+w==,type:comment]
+        providerName: ENC[AES256_GCM,data:xZgs,iv:FFBkYdILKh/tmrXOMJujbhEGe91ELD26HwS22Vhjgss=,tag:L9yHYTFU95yjxv7d9PMK0w==,type:str]
+        #ENC[AES256_GCM,data:GyN7OWP7x6ZSvpHqIcUrv0ClwW6JOD+HeHwdp144eUXVl98Fn7PFDw==,iv:ohRBLzkiibAMGOQapgUaaLdO49pjYy8b2bSYn77OncQ=,tag:JNh2N9TjlcN1IqmtAVJdwQ==,type:comment]
+        #ENC[AES256_GCM,data:syrO9HnD5aHqX54ctbHHbC4EwrtND3KoUoo5WF+ipg==,iv:0nalRiV+z/mv9dUBH0qPihEFg0oV5GOVcfxeu4XFKnA=,tag:ne6fykuaTuuV9ZiCV0SfGg==,type:comment]
+        scopes: ENC[AES256_GCM,data:/O5Tr5p9eNkOdACMdsRlao9Vp5g=,iv:CFhyuuQbEy2dlxPVKnFrQ1l0c5+Wa4F9HsXalTrtYcA=,tag:XtwicZK/C80uclHQLejCTQ==,type:str]
     roleManagement:
         # -- The claim that contains the roles (can be nested, e.g., user.roles)
         # @section -- Role management configuration
@@ -778,15 +779,15 @@ sops:
     age:
         - enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtK2VxZHExcmdUMzUxakdp
-            OXRXcC9KaVB4SFJkRjR2ekdWaEsyZ2xHcmo4CkRrY2Zqcm54alIxcnNDVThmQmlJ
-            Y0w1UEpMM3o5T1VEWjRCYmNsS1E0c1UKLS0tIHJmVUVmSW1salZWbkVnYnl0RmtR
-            S05RRktnSjFPODdUNTRxVjRGOGV0YTQKSAkxSf4coAPWMdpq7kG4XOeMblzXaLbA
-            yhu49hykfi5ids9kZjIoAO8NATaOH8egIrWMyPCuqpgy1uweCXhhww==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtL3BxdnB3dTlJaHNiWTNa
+            Z250YWRNcCtBREV1K2F0U0l1QjBWeWtSMERzCnZEQjZTZ3k5d1d4NEtkTjF6eWV2
+            SUtmaUZrUllJd082UUVsQkdZaGhRMEUKLS0tIFFlcnUxa21PSUI4TXY3YnVqbjk3
+            MFR6LzNNb282VFBMcG4zd2RMM2JnclkK12DtofjCGZ/dgWneSNJi/7Qi+dJZ4N27
+            z6brdOsf+7ssvxlnhvIZNGFpgcOggBhrdtCHlkucarthIonrKtbnHQ==
             -----END AGE ENCRYPTED FILE-----
           recipient: age1v9tnad5563zuz9mjnsypq2h93jhc03lmpehxat60wpczg0927prq7daz46
     encrypted_regex: ((?i)(displayname|email|pass|ca|id|bootstraptoken|secretboxencryptionsecret|secrets|secrets|password|cert|secret($|[^N])|key|token|^data$|^stringData))
-    lastmodified: "2026-10-22T09:37:25Z"
-    mac: ENC[AES256_GCM,data:eEGo9rn8x7veRqrNdP55y9ZMWZHPqJJFxR6QYUd65hx4R/vWyFL4kmTfcMWt3jDpmQAhgXeSHE95Hnq4N8xc+W8a4nctYdXnzNxSp+w24mJ2ny04aPfxVTRPId+NDDEwCiMcVsaqzFcWmAPPGnNNtMFnUOL8OW7P31ZICp2jLoM=,iv:uZSEV/eRiMTGQh9bqS3hiMlwXQ/1RPZAR3xYiqSttB4=,tag:cJKOTEtUlJ9cgVINIGn3Tg==,type:str]
+    lastmodified: "2026-10-22T20:28:51Z"
+    mac: ENC[AES256_GCM,data:T7mCDr+ePIo3odjfMhjuglJn5bDuibcCqxqBIrSti5bPamBNGcDJqZMH8r3yyHGVfvdDTMwRRJyeUKbPSk6+aAQOsdZBpDed/D4hhcwmMT92ClUtQ+ABOrDkjJkIuPH68URYNaLQlf4g/5Gx6+2Kkrpxk96Pk0hPB1Z4olCtgdA=,iv:5lKIgZW3p3tpevMafgkSKLd0fWgddp5DtXZ/mHgH3R4=,tag:0eQ9zbK44fnfzTIASpP2Bw==,type:str]
     shamir_threshold: 3
     version: 3.13.1
