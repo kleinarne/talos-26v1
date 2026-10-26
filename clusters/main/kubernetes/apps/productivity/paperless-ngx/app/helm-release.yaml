@@ -49,6 +49,17 @@ spec:
                 PAPERLESS_URL: https://paperless.${DOMAIN_0}
                 PAPERLESS_OCR_LANGUAGE: "eng"
                 PAPERLESS_OCR_LANGUAGES: "eng deu"
+                # Native AI -> erazer Ollama (interim backend; standing-vs-interim open in local-ai brief)
+                PAPERLESS_AI_ENABLED: "true"
+                PAPERLESS_AI_LLM_BACKEND: "ollama"
+                PAPERLESS_AI_LLM_ENDPOINT: "http://${ERAZER_IP}:11434"
+                PAPERLESS_AI_LLM_MODEL: "qwen3.5:4b"
+                PAPERLESS_AI_LLM_EMBEDDING_BACKEND: "ollama"
+                PAPERLESS_AI_LLM_EMBEDDING_MODEL: "embeddinggemma"
+                PAPERLESS_AI_LLM_REQUEST_TIMEOUT: "900"
+                PAPERLESS_AI_LLM_EXTRA_PARAMS: '{"think": false}'
+                PAPERLESS_TASK_WORKERS: "2"
+                PAPERLESS_LLM_INDEX_TASK_CRON: "0 21 * * *"
                 # django-allauth / Authelia OIDC
                 #PAPERLESS_APPS: 'allauth.socialaccount.providers.openid_connect'
                 #PAPERLESS_SOCIAL_AUTO_SIGNUP: true
