@@ -19,6 +19,12 @@
 # /staging mount — and it is the ONLY container that mounts the Forgejo
 # token. Two separate tool servers = two separate toggles in Open WebUI, so
 # write access is granted per chat, deliberately.
+#
+# v0.2.0 bump (2026-10-28): v0.1.0 + git binary only — the stage-glue
+# shells out to git; v0.1.0 shipped without it (Errno 2, caught live in the
+# first stage_write smoke). No mcpo/ptdgrp/lock changes; license-diff gate
+# not triggered. Merge ONLY after v0.2.0 is pushed to the registry —
+# Recreate kills the old pod before pulling the new image.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -50,7 +56,7 @@ spec:
         - name: forgejo-registry-pull
       containers:
         - name: broker
-          image: git.arneklein.net/kleinar/broker-mcp:v0.1.0
+          image: git.arneklein.net/kleinar/broker-mcp:v0.2.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -113,7 +119,7 @@ spec:
             - name: tmp
               mountPath: /tmp
         - name: stage-glue
-          image: git.arneklein.net/kleinar/broker-mcp:v0.1.0
+          image: git.arneklein.net/kleinar/broker-mcp:v0.2.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
