@@ -1,0 +1,281 @@
+# stage_write glue — the broker's write-back path (the only custom code
+# in the mesh, per the ratified assembly). Deliberately a ConfigMap, not
+# an image rebuild: the script rides the already-built, digest-pinned
+# broker image (mcpo + pinned mcp SDK are already inside; the glue is a
+# FastMCP stdio server and adds ZERO new dependencies), and code-in-repo
+# goes through the same review-before-push + pre-merge gates as every
+# other broker artifact.
+#
+# Envsubst note: strict post-build envsubst parses every dollar in the
+# rendered set. This script intentionally contains ZERO dollar signs
+# (verified); the yml around it carries none either.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stage-glue-script
+  namespace: broker
+data:
+  stage_server.py: |
+    """stage_write: git staging-write glue for the mesh broker (write path).
+
+    ONE MCP tool. It writes note files onto a dated staging branch of the
+    vault repo and pushes that branch. It NEVER merges and NEVER pushes
+    main. Merging is a human act (AI-actor model, PKM architecture).
+
+    Layout:
+      /staging               RW PVC subPath, this sidecar's workspace
+      /staging/vault-write   dedicated git clone owned by this glue
+      /secrets/...           Forgejo token file, read at runtime only
+
+    Auth: the token is read from the mounted secret and passed to git as an
+    Authorization header per invocation (git -c http.extraHeader). It is
+    never written to any file, config, or remote URL. The clean remote URL
+    plus per-invocation header is the Azure-DevOps-PAT pattern.
+
+    The glue keeps its own clone: the shared worktree that the sync script
+    used to pre-create was unusable from inside this pod (its gitdir pointer
+    and the shared object store both live under the read-only /vault mount),
+    so nothing here ever touches the main clone through the ro path.
+    """
+
+    import base64
+    import fcntl
+    import os
+    import subprocess
+    import sys
+    from datetime import datetime, timezone
+    from pathlib import PurePosixPath
+
+    from mcp.server.fastmcp import FastMCP
+    from pydantic import BaseModel, Field
+
+    STAGING = os.environ.get("STAGING_DIR", "/staging")
+    CLONE_DIR = os.path.join(STAGING, "vault-write")
+    LOCK_FILE = os.path.join(STAGING, ".stage.lock")
+    TOKEN_FILE = os.environ.get("STAGE_TOKEN_FILE", "/secrets/forgejo-pkm-stage-token")
+    FORGEJO_URL = os.environ.get(
+        "FORGEJO_URL", "http://forgejo-http.forgejo.svc.cluster.local:3000"
+    )
+    WEB_URL = os.environ.get("WEB_URL", "https://git.arneklein.net")
+    OWNER = os.environ.get("VAULT_OWNER", "kleinar")
+    REPO = os.environ.get("VAULT_REPO", "pkm")
+    BRANCH_PREFIX = os.environ.get("STAGE_BRANCH_PREFIX", "ai-stage")
+    GIT_NAME = os.environ.get("STAGE_GIT_NAME", "vault-broker stage_write")
+    GIT_EMAIL = os.environ.get("STAGE_GIT_EMAIL", "stage-write@broker.svc")
+
+    MAX_FILES = 20
+    MAX_FILE_BYTES = 262144
+    MAX_TOTAL_BYTES = 1048576
+    FORBIDDEN_ROOTS = frozenset([".git", ".obsidian", ".trash", ".stversions"])
+
+
+    def log(msg):
+        print(msg, file=sys.stderr, flush=True)
+
+
+    def read_token():
+        with open(TOKEN_FILE, "r", encoding="utf-8") as fh:
+            tok = fh.read().strip()
+        if not tok:
+            raise RuntimeError("empty Forgejo token file: " + TOKEN_FILE)
+        return tok
+
+
+    def git(token, args, cwd=None, check=True):
+        """Run git with per-invocation auth header and identity. No config files."""
+        header = "Authorization: Basic " + base64.b64encode(
+            ("x-access-token:" + token).encode("utf-8")
+        ).decode("ascii")
+        env = dict(os.environ)
+        env["GIT_CONFIG_NOSYSTEM"] = "1"
+        env["GIT_CONFIG_GLOBAL"] = "/dev/null"
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        cmd = [
+            "git",
+            "-c", "http.extraHeader=" + header,
+            "-c", "user.name=" + GIT_NAME,
+            "-c", "user.email=" + GIT_EMAIL,
+        ] + list(args)
+        proc = subprocess.run(
+            cmd,
+            cwd=cwd or CLONE_DIR,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if check and proc.returncode != 0:
+            err = proc.stderr.replace(token, "[redacted]")
+            raise RuntimeError(
+                "git " + args[0] + " failed (rc=" + str(proc.returncode) + "): "
+                + err.strip()[-2000:]
+            )
+        return proc
+
+
+    def git_out(token, args, cwd=None):
+        return git(token, args, cwd=cwd, check=True).stdout
+
+
+    def ensure_clone(token):
+        if os.path.isdir(os.path.join(CLONE_DIR, ".git")):
+            return
+        url = FORGEJO_URL + "/" + OWNER + "/" + REPO + ".git"
+        log("stage glue: initial clone of " + OWNER + "/" + REPO)
+        proc = git(token, ["clone", url, CLONE_DIR], cwd=STAGING)
+        if proc.returncode != 0:
+            err = proc.stderr.replace(token, "[redacted]")
+            raise RuntimeError("git clone failed: " + err.strip()[-2000:])
+
+
+    def validate_path(path):
+        if not path or len(path) > 200:
+            raise ValueError("path must be 1-200 characters")
+        if path.startswith("/") or "\\" in path:
+            raise ValueError("path must be a relative POSIX path: " + path[:80])
+        p = PurePosixPath(path)
+        parts = p.parts
+        if not parts or ".." in parts:
+            raise ValueError("path must not traverse upward: " + path[:80])
+        if not path.endswith(".md"):
+            raise ValueError("only .md note paths are stageable: " + path[:80])
+        if parts[0] in FORBIDDEN_ROOTS or ".git" in parts:
+            raise ValueError("path root is not stageable: " + path[:80])
+        return p.as_posix()
+
+
+    def pick_branch(token):
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        branch = BRANCH_PREFIX + "/" + stamp
+        n = 2
+        while git(
+            token,
+            ["show-ref", "--verify", "--quiet", "refs/heads/" + branch],
+            check=False,
+        ).returncode == 0:
+            branch = BRANCH_PREFIX + "/" + stamp + "-" + str(n)
+            n += 1
+            if n > 99:
+                raise RuntimeError("branch collision loop; refusing")
+        return branch
+
+
+    def stage_write_impl(files, message):
+        if not files or len(files) > MAX_FILES:
+            raise ValueError("files: provide 1 to " + str(MAX_FILES) + " entries")
+        msg = (message or "").strip()
+        if len(msg) < 3 or len(msg) > 500:
+            raise ValueError("message must be 3-500 characters")
+
+        cleaned = []
+        seen = set()
+        total = 0
+        for f in files:
+            p = validate_path(f.path)
+            if p in seen:
+                raise ValueError("duplicate path: " + p)
+            seen.add(p)
+            if "\x00" in f.content:
+                raise ValueError("NUL byte in content of " + p)
+            data = f.content.encode("utf-8")
+            if len(data) > MAX_FILE_BYTES:
+                raise ValueError("file exceeds budget (256 KiB): " + p)
+            total += len(data)
+            if total > MAX_TOTAL_BYTES:
+                raise ValueError("call exceeds total budget (1 MiB)")
+            cleaned.append((p, f.content))
+
+        token = read_token()
+        os.makedirs(STAGING, exist_ok=True)
+        lock = open(LOCK_FILE, "a+")
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            ensure_clone(token)
+            git(token, ["fetch", "--prune", "origin"])
+            base = git_out(token, ["rev-parse", "--short", "origin/main"]).strip()
+            branch = pick_branch(token)
+            git(token, ["checkout", "-f", "-b", branch, "origin/main"])
+            git(token, ["clean", "-fd"])
+
+            for p, content in cleaned:
+                full = os.path.join(CLONE_DIR, p)
+                if os.path.isdir(full):
+                    raise ValueError("path is a directory: " + p)
+                parent = os.path.dirname(full)
+                if parent:
+                    os.makedirs(parent, exist_ok=True)
+                with open(full, "w", encoding="utf-8", newline="") as fh:
+                    fh.write(content)
+
+            add_args = ["add", "--"] + [p for p, _ in cleaned]
+            git(token, add_args)
+            staged = [
+                ln for ln in git_out(token, ["diff", "--cached", "--name-only"]).splitlines()
+                if ln.strip()
+            ]
+            if not staged:
+                git(token, ["checkout", "-f", "--detach", "origin/main"])
+                git(token, ["branch", "-D", branch])
+                return {
+                    "status": "no-change",
+                    "detail": "content matches origin/main; nothing staged",
+                    "files": [p for p, _ in cleaned],
+                }
+
+            git(token, ["commit", "-m", msg])
+            sha = git_out(token, ["rev-parse", "--short", "HEAD"]).strip()
+
+            if not branch.startswith(BRANCH_PREFIX + "/"):
+                raise RuntimeError("branch guard violated")
+            git(token, ["push", "origin",
+                        "refs/heads/" + branch + ":refs/heads/" + branch])
+            compare = WEB_URL + "/" + OWNER + "/" + REPO + "/compare/main..." + branch
+            log("stage glue: pushed " + branch + " (" + sha + ", "
+                + str(len(staged)) + " files)")
+            return {
+                "status": "staged",
+                "branch": branch,
+                "commit": sha,
+                "base": base,
+                "files": staged,
+                "total_bytes": total,
+                "compare_url": compare,
+                "next": "Human review required: open the compare URL and merge "
+                        "or discard via Forgejo or Working Copy. stage_write "
+                        "never merges and never pushes main.",
+            }
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+            lock.close()
+
+
+    class StageFile(BaseModel):
+        path: str = Field(
+            ..., description="Vault-relative note path, e.g. notes/example.md"
+        )
+        content: str = Field(
+            ..., description="Full note content (UTF-8 text), written byte-exact"
+        )
+
+
+    mcp = FastMCP("stage-glue")
+
+
+    @mcp.tool()
+    def stage_write(files: list[StageFile], message: str) -> dict:
+        """Stage note writes to a NEW dated branch of the vault repo and push it.
+
+        Write-back path of the mesh broker (AI-actor model): the tool only ever
+        pushes a fresh ai-stage/... branch. It never merges and never pushes
+        main; a human reviews and merges (or discards) via the compare URL in
+        the result. Reads are served by the OTHER broker tool server on port
+        8000; this tool has no read access to the vault. Paths must be
+        relative .md note paths; content is written byte-exact. Existing notes
+        are overwritten on the staging branch only (the original stays on
+        main until a human merges).
+        """
+        return stage_write_impl(files, message)
+
+
+    if __name__ == "__main__":
+        log("stage glue: serving stage_write on stdio")
+        mcp.run()

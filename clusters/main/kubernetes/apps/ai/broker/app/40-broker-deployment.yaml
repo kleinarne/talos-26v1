@@ -12,6 +12,13 @@
 #   parses every dollar in the rendered set (PR #176 incident class);
 #   $$ renders to $ (PR #177 proof), then kubelet expands $(MCPO_API_KEY)
 #   from the container env.
+#
+# stage-glue sidecar (write path): same image, second mcpo on :8001 wrapping
+# the stage_write glue (ConfigMap-mounted FastMCP server; no image rebuild).
+# It never mounts /vault — its only vault access is its own clone on the RW
+# /staging mount — and it is the ONLY container that mounts the Forgejo
+# token. Two separate tool servers = two separate toggles in Open WebUI, so
+# write access is granted per chat, deliberately.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -105,6 +112,75 @@ spec:
               subPath: staging
             - name: tmp
               mountPath: /tmp
+        - name: stage-glue
+          image: git.arneklein.net/kleinar/broker-mcp:v0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          # Same wrap pattern as the read path: mcpo on :8001 spawning a stdio
+          # child. The child is the ConfigMap glue; python + the pinned mcp SDK
+          # are already in the image, so no rebuild and no lock change.
+          args:
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8001"
+            - --api-key
+            - $$(MCPO_API_KEY)
+            - --
+            - python
+            - /glue/stage_server.py
+          env:
+            - name: MCPO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: broker-secrets
+                  key: mcpo-api-key
+            - name: VAULT_OWNER
+              value: "kleinar"
+            - name: VAULT_REPO
+              value: "pkm"
+            - name: HOME
+              value: /tmp
+          ports:
+            - name: http-write
+              containerPort: 8001
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: http-write
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: http-write
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: staging        # RW: glue keeps its own clone at /staging/vault-write
+              mountPath: /staging
+              subPath: staging
+            - name: secrets        # Forgejo token, runtime-read only; never on disk elsewhere
+              mountPath: /secrets
+              readOnly: true
+            - name: glue
+              mountPath: /glue
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: vault
           persistentVolumeClaim:
@@ -112,5 +188,11 @@ spec:
         - name: staging
           persistentVolumeClaim:
             claimName: vault-clone
+        - name: secrets
+          secret:
+            secretName: broker-secrets
+        - name: glue
+          configMap:
+            name: stage-glue-script
         - name: tmp
           emptyDir: {}
