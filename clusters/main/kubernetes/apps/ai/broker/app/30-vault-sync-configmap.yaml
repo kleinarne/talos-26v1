@@ -18,7 +18,7 @@ data:
     #!/bin/sh
     set -eu
     TOKEN="$$(cat /secrets/forgejo-token)"
-    URL="http://x-access-token:$${TOKEN}@forgejo-http.forgejo.svc.cluster.local:3000/$$${VAULT_OWNER}/$$${VAULT_REPO}.git"
+    URL="http://x-access-token:$${TOKEN}@forgejo-http.forgejo.svc.cluster.local:3000/$${VAULT_OWNER}/$${VAULT_REPO}.git"
 
     mkdir -p /data/staging
 
@@ -27,7 +27,7 @@ data:
       git -C /data/vault pull --ff-only
     else
       echo "vault: initial clone"
-      git clone "$$${URL}" /data/vault
+      git clone "$${URL}" /data/vault
     fi
 
     # Staging workspace: owned by the stage_write glue sidecar, which keeps
