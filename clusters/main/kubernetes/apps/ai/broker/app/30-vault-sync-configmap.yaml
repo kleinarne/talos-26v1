@@ -18,7 +18,7 @@ data:
     #!/bin/sh
     set -eu
     TOKEN="$$(cat /secrets/forgejo-token)"
-    URL="http://x-access-token:$${TOKEN}@forgejo-http.forgejo.svc.cluster.local:3000/$${VAULT_OWNER}/$${VAULT_REPO}.git"
+    URL="http://x-access-token:$${TOKEN}@forgejo-http.forgejo.svc.cluster.local:3000/$$${VAULT_OWNER}/$$${VAULT_REPO}.git"
 
     mkdir -p /data/staging
 
@@ -27,13 +27,17 @@ data:
       git -C /data/vault pull --ff-only
     else
       echo "vault: initial clone"
-      git clone "$${URL}" /data/vault
+      git clone "$$${URL}" /data/vault
     fi
 
-    # Staging worktree dir for the future git staging-write glue (RW path,
-    # owned by the glue, never by the broker's MCP tools).
-    if [ ! -d /data/staging/.git ]; then
-      git -C /data/vault worktree add --detach /data/staging 2>/dev/null || true
-    fi
+    # Staging workspace: owned by the stage_write glue sidecar, which keeps
+    # its OWN clone at <PVC>/staging/vault-write. The worktree this script
+    # used to pre-create here was defective from inside the broker pod —
+    # a worktree shares the main clone's .git, and that path is only
+    # reachable through the read-only /vault mount (plus the gitdir
+    # pointer records sync-pod paths, not broker-pod paths). Deregister
+    # it and drop the stale pointer file, idempotently.
+    rm -rf /data/vault/.git/worktrees/staging
+    rm -f /data/staging/.git
 
     echo "vault: HEAD is $$(git -C /data/vault rev-parse --short HEAD)"

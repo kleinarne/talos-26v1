@@ -1,5 +1,7 @@
 # Broker Service — ClusterIP only. Open WebUI (step 6) wires the tool
 # server URL http://broker-svc.broker.svc.cluster.local:8000 against it.
+# Port 8001 = stage_write glue (sidecar); added as a SECOND OpenAPI tool
+# server in Open WebUI so write access is a separate per-chat toggle.
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,3 +17,6 @@ spec:
     - name: http
       port: 8000
       targetPort: http
+    - name: write
+      port: 8001
+      targetPort: http-write
