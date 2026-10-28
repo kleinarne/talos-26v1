@@ -3,8 +3,9 @@
 # published helm.openwebui.com index currently carries only dev builds
 # (17.0.1-dev.N, appVersion dev — tracking image, unacceptable). Chart
 # templates are processed by Helm at HelmRelease reconcile time; the strict
-# postBuild envsubst never touches them. The values below are free of
-# substitution-variable syntax (envsubst-clean).
+# postBuild envsubst never touches them. Values use cluster-config postBuild
+# substitution (${DOMAIN_0} via flux-entry envsubst, like every app-dir
+# manifest); literal $ in annotations is $$-doubled per repo convention.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -68,10 +69,36 @@ spec:
       port: 80
       containerPort: 8080
     
-    # Ingress stays OFF for the burst — access via kubectl port-forward.
-    # LAN ingress for the UI is a deliberate residue, decided after the soak.
+    # LAN/WG ingress — Arne decision 2026-10-28, moved up from the post-soak
+    # queue so the operability soak runs on the real (mobile-first) usage
+    # surface instead of port-forward. class internal = strictly LAN/WG by
+    # construction (headlamp + nextcloud precedent, reachable via WG). Only
+    # nginx-external is a Cloudflare-tunnel mapping candidate — this host must
+    # never be added there; no FRITZ!Box WAN forward exists for it either.
+    # Authelia forward-auth gates the edge: access_control already carries a
+    # wildcard one_factor rule for *.DOMAIN_0, so no authelia config change is
+    # needed. OWUI own login stays as the second, independent gate.
     ingress:
-      enabled: false
+      enabled: true
+      class: internal
+      host: chat.${DOMAIN_0}
+      annotations:
+        # House pattern = headlamp (the repo's only other forward-auth
+        # integration), converged 2026-10-28: in-cluster authelia verify (no
+        # edge round-trip), GET verify method, response headers, ingress-shim
+        # TLS (headlamp proves the shim in this cluster). One deliberate
+        # deviation: headlamp ships single $ in ?rm=$request_method; here it
+        # is $$-doubled — $$ is the render-verified form for this cluster
+        # (broker-args precedent, PR #178: $$ collapses to $ in postBuild) and
+        # it keeps the strict envsubst gate green locally (unset-var class).
+        cert-manager.io/cluster-issuer: domain-0-le-prod
+        cert-manager.io/private-key-rotation-policy: Always
+        nginx.ingress.kubernetes.io/auth-method: GET
+        nginx.ingress.kubernetes.io/auth-url: "http://authelia.authelia.svc.cluster.local:9091/api/verify"
+        nginx.ingress.kubernetes.io/auth-signin: "https://auth.${DOMAIN_0}?rm=$$request_method"
+        nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User,Remote-Name,Remote-Groups,Remote-Email"
+      tls: true
+      existingSecret: open-webui-tls
     
     # Mistral connection (stateless key from a SOPS'd secret).
     # The admin UI can refine/override this; seeding it here keeps config reproducible.
