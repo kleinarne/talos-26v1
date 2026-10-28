@@ -52,7 +52,7 @@ data:
     STAGING = os.environ.get("STAGING_DIR", "/staging")
     CLONE_DIR = os.path.join(STAGING, "vault-write")
     LOCK_FILE = os.path.join(STAGING, ".stage.lock")
-    TOKEN_FILE = os.environ.get("STAGE_TOKEN_FILE", "/secrets/forgejo-stage-token")
+    TOKEN_FILE = os.environ.get("STAGE_TOKEN_FILE", "/secrets/forgejo-pkm-stage-token")
     FORGEJO_URL = os.environ.get(
         "FORGEJO_URL", "http://forgejo-http.forgejo.svc.cluster.local:3000"
     )
