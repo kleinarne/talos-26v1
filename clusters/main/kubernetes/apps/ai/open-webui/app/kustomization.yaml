@@ -4,4 +4,3 @@ resources:
   - namespace.yaml
   - mistral-api-key.secret.yaml
   - helmrelease.yaml
-  - certificate.yaml

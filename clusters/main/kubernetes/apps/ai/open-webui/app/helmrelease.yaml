@@ -72,9 +72,9 @@ spec:
     # LAN/WG ingress — Arne decision 2026-10-28, moved up from the post-soak
     # queue so the operability soak runs on the real (mobile-first) usage
     # surface instead of port-forward. class internal = strictly LAN/WG by
-    # construction (nextcloud precedent, reachable via WG). Only nginx-external
-    # is a Cloudflare-tunnel mapping candidate — this host must never be added
-    # there; no FRITZ!Box WAN forward exists for it either.
+    # construction (headlamp + nextcloud precedent, reachable via WG). Only
+    # nginx-external is a Cloudflare-tunnel mapping candidate — this host must
+    # never be added there; no FRITZ!Box WAN forward exists for it either.
     # Authelia forward-auth gates the edge: access_control already carries a
     # wildcard one_factor rule for *.DOMAIN_0, so no authelia config change is
     # needed. OWUI own login stays as the second, independent gate.
@@ -83,11 +83,20 @@ spec:
       class: internal
       host: chat.${DOMAIN_0}
       annotations:
-        # Authelia forward-auth (ingress-nginx auth_request). $ vars are
-        # $$-doubled for strict envsubst (broker-args precedent, PR #178);
-        # the pre-merge envsubst gate must show single $ in the render.
-        nginx.ingress.kubernetes.io/auth-url: "https://auth.${DOMAIN_0}/api/verify"
-        nginx.ingress.kubernetes.io/auth-signin: "https://auth.${DOMAIN_0}/?rd=$$scheme://$$host$$request_uri"
+        # House pattern = headlamp (the repo's only other forward-auth
+        # integration), converged 2026-10-28: in-cluster authelia verify (no
+        # edge round-trip), GET verify method, response headers, ingress-shim
+        # TLS (headlamp proves the shim in this cluster). One deliberate
+        # deviation: headlamp ships single $ in ?rm=$request_method; here it
+        # is $$-doubled — $$ is the render-verified form for this cluster
+        # (broker-args precedent, PR #178: $$ collapses to $ in postBuild) and
+        # it keeps the strict envsubst gate green locally (unset-var class).
+        cert-manager.io/cluster-issuer: domain-0-le-prod
+        cert-manager.io/private-key-rotation-policy: Always
+        nginx.ingress.kubernetes.io/auth-method: GET
+        nginx.ingress.kubernetes.io/auth-url: "http://authelia.authelia.svc.cluster.local:9091/api/verify"
+        nginx.ingress.kubernetes.io/auth-signin: "https://auth.${DOMAIN_0}?rm=$$request_method"
+        nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User,Remote-Name,Remote-Groups,Remote-Email"
       tls: true
       existingSecret: open-webui-tls
     
