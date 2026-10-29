@@ -63,6 +63,16 @@ spec:
                 PAPERLESS_AI_LLM_REQUEST_TIMEOUT: "900"
                 PAPERLESS_TASK_WORKERS: "2"
                 PAPERLESS_LLM_INDEX_TASK_CRON: "0 21 * * *"
+                # Trusted-header SSO (homelab-hardening item 5): consumes the
+                # Remote-User header injected by the forward-auth gate below,
+                # enabled in the SAME change (ordering rule from the brief).
+                # GOTCHA: Remote-User must match the existing paperless username
+                # - Django's remote-user backend auto-creates a non-admin user
+                # otherwise. PAPERLESS_ENABLE_HTTP_REMOTE_USER_API deliberately
+                # NOT set: token clients (mobile app) get bounced by the
+                # forward-auth gate at the edge anyway; ingest path = NFS
+                # consume dir, unaffected.
+                PAPERLESS_ENABLE_HTTP_REMOTE_USER: "true"
     cnpg:
       main:
         mode: recovery
@@ -122,6 +132,16 @@ spec:
         ingressClassName: internal
         annotations:
           cert-manager.io/cluster-issuer: domain-0-le-prod
+          # Authelia forward-auth gate (homelab-hardening item 5) — house
+          # pattern (headlamp/chat.${DOMAIN_0}): in-cluster verify, GET
+          # method, response headers; $$ = render-verified literal form
+          # (broker-args precedent, PR #178). Enabled together with
+          # PAPERLESS_ENABLE_HTTP_REMOTE_USER above (ordering rule: header
+          # auth only ever with the gate, same change).
+          nginx.ingress.kubernetes.io/auth-method: 'GET'
+          nginx.ingress.kubernetes.io/auth-url: 'http://authelia.authelia.svc.cluster.local:9091/api/verify'
+          nginx.ingress.kubernetes.io/auth-signin: 'https://auth.${DOMAIN_0}?rm=$$request_method'
+          nginx.ingress.kubernetes.io/auth-response-headers: 'Remote-User,Remote-Name,Remote-Groups,Remote-Email'
         hosts:
           - host: paperless.${DOMAIN_0}
             paths:
