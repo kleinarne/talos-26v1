@@ -42,42 +42,46 @@ spec:
       enabled: false
     terminals:
       enabled: false
-    
+
     # Single replica, in-memory websocket manager — no bundled Redis needed.
     websocket:
       enabled: true
       manager: ""
       redis:
         enabled: false
-    
+
     replicaCount: 1
-    
+
     image:
       repository: ghcr.io/open-webui/open-webui
       # Empty tag = chart appVersion (0.12.0 at chart 17.0.0). Renovate-pinnable.
       tag: ""
       pullPolicy: IfNotPresent
-    
+
     persistence:
       enabled: true
       size: 2Gi
       accessModes:
         - ReadWriteOnce
-    
+
     service:
       type: ClusterIP
       port: 80
       containerPort: 8080
-    
+
     # LAN/WG ingress — Arne decision 2026-10-28, moved up from the post-soak
     # queue so the operability soak runs on the real (mobile-first) usage
     # surface instead of port-forward. class internal = strictly LAN/WG by
     # construction (headlamp + nextcloud precedent, reachable via WG). Only
     # nginx-external is a Cloudflare-tunnel mapping candidate — this host must
     # never be added there; no FRITZ!Box WAN forward exists for it either.
-    # Authelia forward-auth gates the edge: access_control already carries a
-    # wildcard one_factor rule for *.DOMAIN_0, so no authelia config change is
-    # needed. OWUI own login stays as the second, independent gate.
+    # Authelia forward-auth gates the edge (wildcard two_factor rule since
+    # PR #283). Trusted-header mode (homelab-hardening item 4) replaces OWUI's
+    # own login: password sign-in is killed in trusted-header mode
+    # (open-webui #32127), so authelia is the sole credential path — no
+    # parallel path for a header-spoofing in-cluster foothold to bypass.
+    # Break-glass while authelia is down = port-forward + set Remote-Email
+    # manually (NetworkPolicy item 3b closes that later).
     ingress:
       enabled: true
       class: internal
@@ -99,7 +103,7 @@ spec:
         nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User,Remote-Name,Remote-Groups,Remote-Email"
       tls: true
       existingSecret: open-webui-tls
-    
+
     # Mistral connection (stateless key from a SOPS'd secret).
     # The admin UI can refine/override this; seeding it here keeps config reproducible.
     enableOpenaiApi: true
@@ -107,7 +111,7 @@ spec:
     openaiApiKey: ""
     openaiApiKeyExistingSecret: "mistral-api-key"
     openaiApiKeyExistingSecretKey: "api-key"
-    
+
     # Vendor-principle hygiene: all telemetry/analytics off (burst-check item).
     extraEnvVars:
       - name: SCARF_NO_ANALYTICS
@@ -118,7 +122,16 @@ spec:
         value: "false"
       - name: ENABLE_OTEL
         value: "false"
-    
+      # Trusted-header SSO (homelab-hardening item 4): authelia forward-auth
+      # injects the Remote-* headers above; OWUI consumes them instead of its
+      # own login (password sign-in dies, open-webui #32127). GOTCHA: the OWUI
+      # admin account email must match the lldap/authelia email, else a second
+      # non-admin user is auto-created on first login.
+      - name: WEBUI_AUTH_TRUSTED_EMAIL_HEADER
+        value: "Remote-Email"
+      - name: WEBUI_AUTH_TRUSTED_NAME_HEADER
+        value: "Remote-Name"
+
     # NOTE: the Open WebUI container runs as root (image default). If your cluster
     # policy enforces PSS restricted on the open-webui namespace, set
     # containerSecurityContext here and test writes to /app/backend/data first:
