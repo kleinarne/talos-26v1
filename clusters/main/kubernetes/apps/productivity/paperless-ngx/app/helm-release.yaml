@@ -148,13 +148,13 @@ spec:
           # clients (iOS app) cannot do the authelia session dance and were
           # broken by the gate. auth-snippet lines are injected into the
           # nginx auth location - return 200 = auth granted for /api/ only.
-          # $ = render-verified literal form (envsubst gate). Safe because
+          # $$ = render-verified literal form (envsubst gate). Safe because
           # (1) PAPERLESS_ENABLE_HTTP_REMOTE_USER_API is unset - Django
           # ignores Remote-User on API paths, (2) auth-response-headers
           # still strips client-sent Remote-User, (3) ingress is
           # internal-class, never WAN-reachable.
           nginx.ingress.kubernetes.io/auth-snippet: |
-            if ($request_uri ~ ^/api/) {
+            if ($$request_uri ~ ^/api/) {
               return 200;
             }
         hosts:
