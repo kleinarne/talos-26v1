@@ -87,6 +87,35 @@ only to commits:
 - To see which endpoint an unqualified command actually hits, append
   `-v=6` and read the request URL.
 
+## Backup-state verification (VolSync/restic)
+
+- Verify backup state from `ReplicationSource.status`, never from the
+  absence of errors: `kubectl -n <ns> get replicationsource <name> -o
+  yaml | sed -n '/^status:/,$p'` — `lastSyncTime`,
+  `latestMoverStatus.result` (with its log tail), `restic.lastPruned`.
+- The `resticrepository` CRD does not exist on the installed VolSync
+  version (observed 2026-10-29: `error: the server doesn't have a
+  resource type "resticrepository"`). Repository state comes from
+  `ReplicationSource.status` plus the restic CLI — do not probe for
+  the CRD.
+- When a rollback point matters (pre-upgrade, pre-maintenance), prove it
+  by snapshot census, not by schedule: run the restic CLI against the
+  repository and confirm a timestamp before the change. Credentials live
+  in the per-app `<app>-backup-restic` Secret (`RESTIC_REPOSITORY`,
+  `RESTIC_PASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`):
+  decrypt clusterenv with `sops` where available, extract from the
+  Secret, or run in-cluster as a one-off pod from the mover image with
+  `envFrom` the secret — no credential value touches a terminal.
+- Completed mover Job pods are `Succeeded` — `kubectl exec` is
+  impossible; spawn a debug pod instead. PSS-restricted namespaces
+  require the full securityContext inside `kubectl run --overrides`,
+  which replaces the containers array wholesale (image + command +
+  securityContext complete, or admission rejects the pod).
+- restic renders snapshot timestamps in the listing client's local
+  timezone; backup crons run UTC. DST shifts appear in snapshot history
+  and are not schedule changes (observed 2026-10-29: 03:07 → 02:07
+  across the DST end at an unchanged 01:07 UTC schedule).
+
 ## PKM vault seam
 
 - Tasks touching the PKM vault or its hosting follow vault rules
