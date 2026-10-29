@@ -1,5 +1,9 @@
 ---
 # yaml-language-server: $schema=https://k8s-schemas.home-operations.com/core/configmap_v1.json
+# CONFIG-CHANGE RUNBOOK: authelia mounts this file via subPath — pods do NOT pick up
+# changes automatically, flux stays green, and drift detection sees nothing. After
+# merging a change here, always run:
+#   kubectl -n authelia rollout restart deploy/authelia
 apiVersion: v1
 kind: ConfigMap
 metadata:
