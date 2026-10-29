@@ -95,7 +95,7 @@ orchestrator:
     # -- Backend type: kubernetes-operator, kubernetes, docker, local, static
     backend: kubernetes-operator
     # -- Default image for spawned terminal pods
-    terminalImage: ghcr.io/open-webui/open-terminal:latest@sha256:785d7f2b845f2bf15a1d5e3c9f1460709168551cdf004f1513ed7802426589b3
+    terminalImage: ghcr.io/open-webui/open-terminal:latest@sha256:aa56370e7bdaf13ad84b41881b530877efef168e894db4d74f45487c50d57050
     # -- Pull policy for the terminal image inside spawned pods
     terminalImagePullPolicy: IfNotPresent
     # -- Idle timeout in minutes for spawned terminal pods (0 = disabled)
