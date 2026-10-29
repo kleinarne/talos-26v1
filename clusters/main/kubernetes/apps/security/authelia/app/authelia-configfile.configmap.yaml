@@ -32,23 +32,3 @@ data:
       rules:
         - domain: '*.${DOMAIN_0}'
           policy: two_factor
-    identity_providers:
-      oidc:
-        hmac_secret: {{ secret "/config/secret/hmac_secret" }}
-        jwks:
-          - key: |
-              {{ secret "/config/secret/jwks_key.pem" | mindent 10 "|" | msquote }}
-        authorization_policies:
-          apps:
-            default_policy: 'deny'
-            rules:
-              - policy: 'one_factor'
-                subject: 'group:apps'
-        clients:
-          - client_name: 'Paperless'
-            client_id: {{ secret "/config/secret/clients_paperless_client_id" }}
-            client_secret: {{ secret "/config/secret/clients_paperless_client_secret" }}
-            authorization_policy: 'apps'
-            require_pkce: true
-            redirect_uris:
-              - 'https://paperless.${DOMAIN_0}/accounts/oidc/authelia/login/callback/'
