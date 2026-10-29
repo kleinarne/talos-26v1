@@ -31,7 +31,7 @@ data:
       default_policy: deny
       rules:
         - domain: '*.${DOMAIN_0}'
-          policy: one_factor
+          policy: two_factor
     identity_providers:
       oidc:
         hmac_secret: {{ secret "/config/secret/hmac_secret" }}
