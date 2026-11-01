@@ -32,7 +32,10 @@ data:
     exec 9>/data/.sync.lock
     flock 9
     TOKEN="$$(cat /secrets/forgejo-token)"
-    URL="http://forgejo-http.forgejo.svc.cluster.local:3000/$${VAULT_OWNER}/$${VAULT_REPO}.git"
+    # HTTPS to the public endpoint (LE-prod cert, system CAs in
+    # alpine/git): the old in-cluster plaintext URL put the PAT on the
+    # wire in cleartext.
+    URL="https://git.arneklein.net/$${VAULT_OWNER}/$${VAULT_REPO}.git"
     AUTH="Authorization: Basic $$(printf '%s' "x-access-token:$${TOKEN}" | base64 | tr -d '\n')"
 
     if [ -d /data/vault/.git ]; then

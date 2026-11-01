@@ -33,6 +33,14 @@
 # first stage_write smoke). No mcpo/ptdgrp/lock changes; license-diff gate
 # not triggered. Merge ONLY after v0.2.0 is pushed to the registry -
 # Recreate kills the old pod before pulling the new image.
+#
+# Readiness hardening (2026-10-31 review): /docs only proves the mcpo
+# wrapper is up - on a fresh PVC kubelet CREATES missing subPath dirs,
+# so the old probe could mark an EMPTY mirror Ready and serve it
+# silently. The exec probe (python, already in the image) fails until
+# the vault mirror holds a checked-out commit; same gate for the glue's
+# own clone on the staging side. Bootstrap stays the documented manual
+# vault-sync job run.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,6 +61,24 @@ spec:
         app: broker
     spec:
       automountServiceAccountToken: false   # pod needs no API access
+      volumes:
+        - name: vault
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: staging
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: secrets
+          secret:
+            secretName: broker-secrets
+        - name: glue
+          configMap:
+            name: stage-glue-script
+        - name: readyz
+          configMap:
+            name: broker-readyz
+        - name: tmp
+          emptyDir: {}
       securityContext:
         runAsNonRoot: true          # Stage-A A19: root bypasses DAC - this is the ro-enforcement knob
         runAsUser: 1000             # node user in the image
@@ -96,12 +122,12 @@ spec:
             - name: http
               containerPort: 8000
           readinessProbe:
-            httpGet:
-              path: /docs
-              port: http
+            exec:
+              command: ["python", "/readyz/readyz.py"]
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 6
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /docs
@@ -126,6 +152,9 @@ spec:
               subPath: staging
             - name: tmp
               mountPath: /tmp
+            - name: readyz
+              mountPath: /readyz
+              readOnly: true
         - name: stage-glue
           image: git.arneklein.net/kleinar/broker-mcp:v0.2.0
           imagePullPolicy: IfNotPresent
@@ -161,16 +190,18 @@ spec:
               value: "park"
             - name: HOME
               value: /tmp
+            - name: READYZ_REPO
+              value: /staging/vault-write
           ports:
             - name: http-write
               containerPort: 8001
           readinessProbe:
-            httpGet:
-              path: /docs
-              port: http-write
+            exec:
+              command: ["python", "/readyz/readyz.py"]
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 6
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /docs
@@ -197,18 +228,6 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
-      volumes:
-        - name: vault
-          persistentVolumeClaim:
-            claimName: vault-clone
-        - name: staging
-          persistentVolumeClaim:
-            claimName: vault-clone
-        - name: secrets
-          secret:
-            secretName: broker-secrets
-        - name: glue
-          configMap:
-            name: stage-glue-script
-        - name: tmp
-          emptyDir: {}
+            - name: readyz
+              mountPath: /readyz
+              readOnly: true

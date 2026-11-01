@@ -25,9 +25,15 @@
 #   is a human act
 #
 # Auth: the token is read from the mounted secret and passed per
-# invocation - to git as an Authorization header (git -c http.extraHeader,
+# invocation - to git as an Authorization header via GIT_CONFIG env vars
+# (NOT argv: /proc/<pid>/cmdline is world-readable, environ is same-uid;
 # clean remote URL always), to the Forgejo REST API in the Authorization
 # header. It is never written to any file, config, or remote URL.
+#
+# Transport: HTTPS to the public Forgejo endpoint (LE-prod cert,
+# publicly trusted, verified against the system CAs by both git and
+# urllib). The old in-cluster plaintext forgejo-http:3000 endpoint put
+# the PAT on the wire in cleartext.
 #
 # Envsubst note: strict post-build envsubst parses every dollar in the
 # rendered set. This script intentionally contains ZERO dollar signs
@@ -85,7 +91,7 @@ data:
     LOCK_FILE = os.path.join(STAGING, ".stage.lock")
     TOKEN_FILE = os.environ.get("STAGE_TOKEN_FILE", "/secrets/forgejo-pkm-stage-token")
     FORGEJO_URL = os.environ.get(
-        "FORGEJO_URL", "http://forgejo-http.forgejo.svc.cluster.local:3000"
+        "FORGEJO_URL", "https://git.arneklein.net"
     )
     WEB_URL = os.environ.get("WEB_URL", "https://git.arneklein.net")
     OWNER = os.environ.get("VAULT_OWNER", "kleinar")
@@ -115,7 +121,10 @@ data:
         return tok
 
     def git(token, args, cwd=None, check=True):
-        """Run git with per-invocation auth header and identity. No config files."""
+        """Run git with per-invocation auth header and identity. No config
+        files. The auth header rides GIT_CONFIG env (git config -c via
+        argv would expose the PAT through world-readable /proc cmdline);
+        TLS is verified against the system CAs (HTTPS endpoint only)."""
         header = "Authorization: Basic " + base64.b64encode(
             ("x-access-token:" + token).encode("utf-8")
         ).decode("ascii")
@@ -123,9 +132,11 @@ data:
         env["GIT_CONFIG_NOSYSTEM"] = "1"
         env["GIT_CONFIG_GLOBAL"] = "/dev/null"
         env["GIT_TERMINAL_PROMPT"] = "0"
+        env["GIT_CONFIG_COUNT"] = "1"
+        env["GIT_CONFIG_KEY_0"] = "http.extraHeader"
+        env["GIT_CONFIG_VALUE_0"] = header
         cmd = [
             "git",
-            "-c", "http.extraHeader=" + header,
             "-c", "user.name=" + GIT_NAME,
             "-c", "user.email=" + GIT_EMAIL,
         ] + list(args)
@@ -416,19 +427,49 @@ data:
                 except RuntimeError as err:
                     # Ambiguous push: a transport failure after the server
                     # received the ref looks identical to one before it.
-                    # Name the branch so the actor retries onto the SAME
-                    # branch (converges either way) instead of minting a
-                    # duplicate park on a fresh dated branch.
-                    raise RuntimeError(
-                        "PUSH OUTCOME AMBIGUOUS for branch " + branch
-                        + " (commit " + sha + "): the push may or may not have "
-                        + "landed on the remote. Retry the SAME park with branch="
-                        + branch + " - it converges either way (branch on "
-                        + "origin: content matches, PR ensured; branch not on "
-                        + "origin: recreated from " + BASE_BRANCH + " and pushed). "
-                        + "Do not park a fresh branch unless duplicate content is "
-                        + "wanted. Original error: " + str(err)
+                    # Reconcile against the remote (ls-remote) instead of
+                    # guessing: ref landed at this commit -> the push
+                    # succeeded, park continues, no half-park report;
+                    # ref absent -> fail naming the branch machine-readably
+                    # (RETRY_BRANCH=) so even a caller that cannot parse
+                    # prose lands the retry on the SAME branch instead of
+                    # minting a duplicate park on a fresh dated branch.
+                    sha_full = git_out(token, ["rev-parse", "HEAD"]).strip()
+                    probe = git(
+                        token,
+                        ["ls-remote", "origin", "refs/heads/" + branch],
+                        check=False,
                     )
+                    remote_line = probe.stdout.strip()
+                    if probe.returncode != 0:
+                        raise RuntimeError(
+                            "PUSH OUTCOME AMBIGUOUS for branch " + branch
+                            + " (commit " + sha + "): the push may or may not "
+                            + "have landed and ls-remote could not verify "
+                            + "(transport down). RETRY_BRANCH=" + branch
+                            + " - retry the SAME park with branch=" + branch
+                            + " - it converges either way (branch on "
+                            + "origin: content matches, PR ensured; branch "
+                            + "not on origin: recreated from " + BASE_BRANCH
+                            + " and pushed). Do not park a fresh branch "
+                            + "unless duplicate content is wanted. "
+                            + "Original error: " + str(err)
+                        )
+                    remote_sha = remote_line.split()[0] if remote_line else ""
+                    if remote_sha == sha_full:
+                        git(token, ["update-ref",
+                                    "refs/remotes/origin/" + branch, sha_full])
+                        log("park: push outcome verified on remote for "
+                            + branch + " (" + sha + ")")
+                    else:
+                        raise RuntimeError(
+                            "PUSH FAILED for branch " + branch
+                            + " (commit " + sha + "): the remote does not "
+                            + "carry the ref (verified via ls-remote). "
+                            + "RETRY_BRANCH=" + branch + " - retry the SAME "
+                            + "park with branch=" + branch + " to recreate "
+                            + "and push it. Original error: " + str(err)
+                        )
                 pushed = True
                 log("park: pushed " + branch + " (" + sha + ", "
                     + str(len(staged)) + " files)")

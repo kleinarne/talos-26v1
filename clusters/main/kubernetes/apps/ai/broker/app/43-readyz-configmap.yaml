@@ -1,0 +1,45 @@
+# Readiness gate for the broker pod (2026-10-31 review finding: /docs
+# only proves the mcpo wrapper listens; on a fresh PVC kubelet CREATES
+# missing subPath dirs, so an EMPTY vault mirror was served Ready and
+# silent). The exec probe runs this script on both containers:
+#   - broker (read path): /vault must be a git worktree with a commit
+#     checked out on HEAD - i.e. the vault-sync bootstrap clone ran.
+#   - stage-glue (write path): same gate for the glue's own clone at
+#     /staging/vault-write (created lazily by the first park).
+# Zero new dependencies: python3 + subprocess to git are in the image.
+# FAILS LOUD: an empty or missing mirror keeps the pod NotReady - the
+# documented manual vault-sync bootstrap job is the repair.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: broker-readyz
+  namespace: broker
+data:
+  readyz.py: |
+    import os
+    import subprocess
+    import sys
+
+    path = os.environ.get("READYZ_REPO", "/vault")
+
+    def fail(reason):
+        print("readyz: NOT READY - " + reason, file=sys.stderr, flush=True)
+        sys.exit(1)
+
+    if not os.path.isdir(os.path.join(path, ".git")):
+        fail("no git repository at " + path + " - run the vault-sync bootstrap job")
+    try:
+        head = subprocess.run(
+            ["git", "-C", path, "rev-parse", "--verify", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except OSError as err:
+        fail("git invocation failed: " + str(err))
+    except subprocess.TimeoutExpired:
+        fail("git rev-parse timed out")
+    if head.returncode != 0 or not head.stdout.strip():
+        fail("no commit checked out at " + path)
+    print("readyz: OK - " + path + " at " + head.stdout.strip()[:12])
+    sys.exit(0)
