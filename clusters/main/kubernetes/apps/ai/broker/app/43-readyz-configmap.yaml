@@ -17,9 +17,11 @@
 # repair. Failures are TRUTHFUL: a nonzero git exit always surfaces the
 # exit code + stderr tail (2026-11-01 defect: root-ownership 'dubious
 # ownership' was misreported as 'no commit checked out'). Ownership
-# itself is fixed at pod start by the fix-permissions initContainer
-# (40-broker-deployment.yaml); this probe never papers over it with
-# safe.directory.
+# itself cannot be corrected in-band: the ns enforces PodSecurity
+# restricted:latest (the #305 root initContainer was admission-
+# rejected), so this probe declares git's path-scoped trust
+# (safe.directory via GIT_CONFIG_GLOBAL, see the script body) for the
+# kubelet root-uid subPath pattern.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -33,6 +35,25 @@ data:
 
     path = os.environ.get("READYZ_REPO", "/vault")
 
+    # Kubelet creates missing subPath dirs at pod mount with ROOT uid
+    # (fsGroup fixes only the gid) and this ns enforces PodSecurity
+    # restricted:latest, so no root container can chown it back in-band.
+    # safe.directory is git's designed, path-scoped trust declaration for
+    # exactly this kubelet pattern - but git only honors it from a GLOBAL
+    # or SYSTEM config (never -c: a hostile repo must not be able to
+    # self-declare trust). The env-config pattern is already idiomatic in
+    # the stage glue (42). The probe writes to /tmp (pod-ephemeral,
+    # emptyDir) and passes GIT_CONFIG_GLOBAL only to the rev-parse child;
+    # the broker container's own env is untouched. No-op when the mirror
+    # is already uid-1000 (sync-first convergence).
+    gitconfig = os.path.join(
+        os.environ.get("READYZ_TMP", "/tmp"), "readyz.gitconfig"
+    )
+    with open(gitconfig, "w", encoding="utf-8") as fh:
+        fh.write("[safe]\n\tdirectory = " + path + "\n")
+    probe_env = dict(os.environ)
+    probe_env["GIT_CONFIG_GLOBAL"] = gitconfig
+
     def fail(reason):
         print("readyz: NOT READY - " + reason, file=sys.stderr, flush=True)
         sys.exit(1)
@@ -45,6 +66,7 @@ data:
             capture_output=True,
             text=True,
             timeout=10,
+            env=probe_env,
         )
     except OSError as err:
         fail("git invocation failed: " + str(err))
