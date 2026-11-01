@@ -61,6 +61,17 @@ spec:
         app: broker
     spec:
       automountServiceAccountToken: false   # pod needs no API access
+      # Forgejo over in-cluster TLS: git.<domain> is pinned to the
+      # nginx-internal LB VIP so https://git.<domain> from this pod stays
+      # on the cluster network (public DNS points the name at the
+      # nginx-external LB IP - pod hairpin out-and-back does not work
+      # here). nginx-internal serves the *.<domain> wildcard LE cert, so
+      # TLS validates for the pinned name. The internal ingress lives
+      # with the Forgejo app (internal-ingress.yaml).
+      hostAliases:
+        - ip: ${NGINX_INTERNAL_IP}
+          hostnames:
+            - git.${DOMAIN_0}
       volumes:
         - name: vault
           persistentVolumeClaim:

@@ -29,6 +29,16 @@ spec:
             app: vault-sync
         spec:
           restartPolicy: Never
+          # In-cluster TLS path to Forgejo: sync.sh speaks https://git.<domain>;
+          # the name is pinned to the nginx-internal LB VIP so the traffic
+          # stays on the cluster network (public DNS points it at the
+          # nginx-external LB IP - pod hairpin out-and-back does not work
+          # here). nginx-internal serves the *.<domain> wildcard LE cert, so
+          # TLS validates. See forgejo/app/internal-ingress.yaml.
+          hostAliases:
+            - ip: ${NGINX_INTERNAL_IP}
+              hostnames:
+                - git.${DOMAIN_0}
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000

@@ -30,10 +30,14 @@
 # clean remote URL always), to the Forgejo REST API in the Authorization
 # header. It is never written to any file, config, or remote URL.
 #
-# Transport: HTTPS to the public Forgejo endpoint (LE-prod cert,
-# publicly trusted, verified against the system CAs by both git and
-# urllib). The old in-cluster plaintext forgejo-http:3000 endpoint put
-# the PAT on the wire in cleartext.
+# Transport: HTTPS to https://git.arneklein.net - resolved IN-CLUSTER:
+# the Deployment's hostAliases pin the name to the nginx-internal LB
+# VIP (pod->internal VIP->nginx-internal->forgejo-http ClusterIP; pods
+# cannot hairpin out to the external LB and back), and nginx-internal
+# serves the *.arneklein.net wildcard LE cert, so TLS validates against
+# the system CAs for git and urllib alike. The literal hostname (no $)
+# keeps this ConfigMap envsubst-safe. The old in-cluster plaintext
+# forgejo-http:3000 endpoint put the PAT on the wire in cleartext.
 #
 # Envsubst note: strict post-build envsubst parses every dollar in the
 # rendered set. This script intentionally contains ZERO dollar signs

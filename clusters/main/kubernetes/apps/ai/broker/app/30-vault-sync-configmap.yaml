@@ -32,10 +32,12 @@ data:
     exec 9>/data/.sync.lock
     flock 9
     TOKEN="$$(cat /secrets/forgejo-token)"
-    # HTTPS to the public endpoint (LE-prod cert, system CAs in
-    # alpine/git): the old in-cluster plaintext URL put the PAT on the
-    # wire in cleartext.
-    URL="https://git.arneklein.net/$${VAULT_OWNER}/$${VAULT_REPO}.git"
+    # HTTPS over the in-cluster path (git.<domain> pinned to the
+    # nginx-internal LB VIP by the job's hostAliases; nginx-internal
+    # serves the *.<domain> wildcard LE cert, so TLS validates with the
+    # system CAs in alpine/git): the old in-cluster plaintext URL put
+    # the PAT on the wire in cleartext.
+    URL="https://git.${DOMAIN_0}/$${VAULT_OWNER}/$${VAULT_REPO}.git"
     AUTH="Authorization: Basic $$(printf '%s' "x-access-token:$${TOKEN}" | base64 | tr -d '\n')"
 
     if [ -d /data/vault/.git ]; then
