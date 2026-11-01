@@ -160,7 +160,7 @@ data:
     def validate_path(path):
         if not path or len(path) > 200:
             raise ValueError("path must be 1-200 characters")
-        if path.startswith("/") or "\\\\" in path:
+        if path.startswith("/") or "\\" in path:
             raise ValueError("path must be a relative POSIX path: " + path[:80])
         p = PurePosixPath(path)
         parts = p.parts
@@ -188,7 +188,7 @@ data:
                 or part.startswith(".")
                 or ".." in part
                 or part.endswith(".lock")
-                or any(c in part for c in " ~^:?*[\\\\")
+                or any(c in part for c in " ~^:?*[\\")
             ):
                 raise ValueError("invalid git branch name: " + branch[:80])
         return branch
@@ -502,6 +502,6 @@ data:
         """
         return park_impl(files, message, (branch or "").strip(), (title or "").strip())
 
-    if ____name__ == "__main__":
+    if __name__ == "__main__":
         log("park glue: serving park on stdio")
         mcp.run()
