@@ -99,12 +99,13 @@ data:
     MAX_FILE_BYTES = 262144
     MAX_TOTAL_BYTES = 1048576
     API_TIMEOUT = 30
+    PR_PAGE_SIZE = 50
+    PR_PAGE_CAP = 100
     FORBIDDEN_ROOTS = frozenset([".git", ".obsidian", ".trash", ".stversions"])
 
 
     def log(msg):
         print(msg, file=sys.stderr, flush=True)
-
 
     def read_token():
         with open(TOKEN_FILE, "r", encoding="utf-8") as fh:
@@ -112,7 +113,6 @@ data:
         if not tok:
             raise RuntimeError("empty Forgejo token file: " + TOKEN_FILE)
         return tok
-
 
     def git(token, args, cwd=None, check=True):
         """Run git with per-invocation auth header and identity. No config files."""
@@ -144,10 +144,8 @@ data:
             )
         return proc
 
-
     def git_out(token, args, cwd=None):
         return git(token, args, cwd=cwd, check=True).stdout
-
 
     def ensure_clone(token):
         if os.path.isdir(os.path.join(CLONE_DIR, ".git")):
@@ -159,11 +157,10 @@ data:
             err = proc.stderr.replace(token, "[redacted]")
             raise RuntimeError("git clone failed: " + err.strip()[-2000:])
 
-
     def validate_path(path):
         if not path or len(path) > 200:
             raise ValueError("path must be 1-200 characters")
-        if path.startswith("/") or "\\" in path:
+        if path.startswith("/") or "\\\\" in path:
             raise ValueError("path must be a relative POSIX path: " + path[:80])
         p = PurePosixPath(path)
         parts = p.parts
@@ -174,7 +171,6 @@ data:
         if parts[0] in FORBIDDEN_ROOTS or ".git" in parts:
             raise ValueError("path root is not parkable: " + path[:80])
         return p.as_posix()
-
 
     def validate_branch(branch):
         """Re-park target must be a git-valid name under the park prefix."""
@@ -192,11 +188,10 @@ data:
                 or part.startswith(".")
                 or ".." in part
                 or part.endswith(".lock")
-                or any(c in part for c in " ~^:?*[\\")
+                or any(c in part for c in " ~^:?*[\\\\")
             ):
                 raise ValueError("invalid git branch name: " + branch[:80])
         return branch
-
 
     def pick_branch(token):
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
@@ -212,7 +207,6 @@ data:
             if n > 99:
                 raise RuntimeError("branch collision loop; refusing")
         return branch
-
 
     def api(token, method, path, body=None):
         """Forgejo REST call, token in the Authorization header, never in URLs."""
@@ -243,22 +237,34 @@ data:
                 + method + " " + path + "): " + str(err.reason)
             )
 
-
     def open_pr_for(token, branch):
-        path = "/repos/" + OWNER + "/" + REPO + "/pulls?state=open&limit=50"
-        status, payload = api(token, "GET", path)
-        if status != 200:
-            raise RuntimeError(
-                "listing open PRs failed (HTTP " + str(status) + "): "
-                + json.dumps(payload)[:500]
-            )
-        for pr in payload if isinstance(payload, list) else []:
-            head = (pr.get("head") or {}).get("ref") or ""
-            base = (pr.get("base") or {}).get("ref") or ""
-            if head == branch and base == BASE_BRANCH:
-                return pr
-        return None
-
+        """Find the open PR for a branch, paginating (a missed hit would
+        wedge ensure-open-PR into a permanent 409 loop)."""
+        page = 1
+        while True:
+            path = ("/repos/" + OWNER + "/" + REPO
+                    + "/pulls?state=open&limit=" + str(PR_PAGE_SIZE)
+                    + "&page=" + str(page))
+            status, payload = api(token, "GET", path)
+            if status != 200:
+                raise RuntimeError(
+                    "listing open PRs failed (HTTP " + str(status) + "): "
+                    + json.dumps(payload)[:500]
+                )
+            items = payload if isinstance(payload, list) else []
+            for pr in items:
+                head = (pr.get("head") or {}).get("ref") or ""
+                base = (pr.get("base") or {}).get("ref") or ""
+                if head == branch and base == BASE_BRANCH:
+                    return pr
+            if len(items) < PR_PAGE_SIZE:
+                return None
+            if page >= PR_PAGE_CAP:
+                raise RuntimeError(
+                    "open PR listing did not converge within "
+                    + str(PR_PAGE_CAP) + " pages; refusing"
+                )
+            page += 1
 
     def pr_summary(payload):
         num = payload.get("number")
@@ -266,7 +272,6 @@ data:
             WEB_URL + "/" + OWNER + "/" + REPO + "/pulls/" + str(num)
         )
         return num, url
-
 
     def ensure_open_pr(token, branch, title, body_text):
         """Create-if-none-exists. Returns (pr, created)."""
@@ -296,14 +301,12 @@ data:
             + json.dumps(payload)[:500]
         )
 
-
     def pr_title_of(message, title):
         t = (title or "").strip()
         if t:
             return t[:120]
         first = message.strip().splitlines()[0] if message.strip() else "park"
         return ("Park: " + first)[:120]
-
 
     def pr_body_of(message, sha, files):
         lines = [
@@ -315,7 +318,6 @@ data:
         lines.append("")
         lines.append("Ratify = human review and merge. The broker never merges.")
         return "\n".join(lines)
-
 
     def park_impl(files, message, branch, title):
         if not files or len(files) > MAX_FILES:
@@ -408,8 +410,25 @@ data:
                 sha = git_out(token, ["rev-parse", "--short", "HEAD"]).strip()
                 if not branch.startswith(BRANCH_PREFIX + "/"):
                     raise RuntimeError("branch guard violated")
-                git(token, ["push", "origin",
-                            "refs/heads/" + branch + ":refs/heads/" + branch])
+                try:
+                    git(token, ["push", "origin",
+                                "refs/heads/" + branch + ":refs/heads/" + branch])
+                except RuntimeError as err:
+                    # Ambiguous push: a transport failure after the server
+                    # received the ref looks identical to one before it.
+                    # Name the branch so the actor retries onto the SAME
+                    # branch (converges either way) instead of minting a
+                    # duplicate park on a fresh dated branch.
+                    raise RuntimeError(
+                        "PUSH OUTCOME AMBIGUOUS for branch " + branch
+                        + " (commit " + sha + "): the push may or may not have "
+                        + "landed on the remote. Retry the SAME park with branch="
+                        + branch + " - it converges either way (branch on "
+                        + "origin: content matches, PR ensured; branch not on "
+                        + "origin: recreated from " + BASE_BRANCH + " and pushed). "
+                        + "Do not park a fresh branch unless duplicate content is "
+                        + "wanted. Original error: " + str(err)
+                    )
                 pushed = True
                 log("park: pushed " + branch + " (" + sha + ", "
                     + str(len(staged)) + " files)")
@@ -427,9 +446,9 @@ data:
                     raise RuntimeError(
                         "HALF-PARK (loud, by design): branch " + branch
                         + " pushed at " + sha + " but ensuring the open PR "
-                        "failed. Retry the SAME park with branch=" + branch
+                        + "failed. Retry the SAME park with branch=" + branch
                         + " to converge: the push is then a no-op and the PR "
-                        "will be ensured. Original error: " + str(err)
+                        + "will be ensured. Original error: " + str(err)
                     )
                 raise
 
@@ -454,7 +473,6 @@ data:
             fcntl.flock(lock, fcntl.LOCK_UN)
             lock.close()
 
-
     class ParkFile(BaseModel):
         path: str = Field(
             ..., description="Repo-relative note path, e.g. notes/example.md"
@@ -463,9 +481,7 @@ data:
             ..., description="Full note content (UTF-8 text), written byte-exact"
         )
 
-
     mcp = FastMCP("stage-glue")
-
 
     @mcp.tool()
     def park(files: list[ParkFile], message: str, branch: str = "", title: str = "") -> dict:
@@ -486,7 +502,6 @@ data:
         """
         return park_impl(files, message, (branch or "").strip(), (title or "").strip())
 
-
-    if __name__ == "__main__":
+    if ____name__ == "__main__":
         log("park glue: serving park on stdio")
         mcp.run()

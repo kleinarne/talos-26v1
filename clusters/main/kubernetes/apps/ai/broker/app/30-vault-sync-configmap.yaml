@@ -23,6 +23,14 @@ data:
   sync.sh: |
     #!/bin/sh
     set -eu
+    # Single-writer lock: concurrencyPolicy: Forbid only serializes jobs
+    # the CronJob controller creates; a manual bootstrap job (kubectl
+    # create job --from=cronjob/vault-sync) is NOT covered by it and could
+    # race a scheduled run - two clones or two ff-merges on the same PVC
+    # worktree. The lock file on the PVC closes that gap (both paths run
+    # this script; busybox flock holds it for the shell via fd 9).
+    exec 9>/data/.sync.lock
+    flock 9
     TOKEN="$$(cat /secrets/forgejo-token)"
     URL="http://forgejo-http.forgejo.svc.cluster.local:3000/$${VAULT_OWNER}/$${VAULT_REPO}.git"
     AUTH="Authorization: Basic $$(printf '%s' "x-access-token:$${TOKEN}" | base64 | tr -d '\n')"
