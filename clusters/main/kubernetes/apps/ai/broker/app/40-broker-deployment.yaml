@@ -48,6 +48,14 @@
 # path after a fresh PVC - glue NotReady drops the pod from the service
 # on BOTH ports, the first park never arrives, the clone is never
 # created. mcpo-up is the correct gate for a self-initializing path.
+#
+# Fresh-PVC ownership (2026-11-01 live reinstall defect): kubelet creates
+# missing subPath dirs as ROOT (fsGroup only fixes the GID). The first
+# sync clone succeeds into the root-owned dir, then every later git op
+# as uid 1000 fails 'dubious ownership'. The fix-permissions initContainer
+# chowns the subPath mounts in place BEFORE the main containers start -
+# the ownership half of the fresh-PVC gate (the readyz probe is the
+# emptiness half). No safe.directory anywhere - git's guard stays on.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -109,6 +117,48 @@ spec:
           type: RuntimeDefault
       imagePullSecrets:
         - name: forgejo-registry-pull
+      initContainers:
+        # Ownership half of the fresh-PVC gate (2026-11-01 live reinstall
+        # defect): kubelet CREATES missing subPath dirs as ROOT (SetVolume-
+        # Ownership sets fsGroup's GID + g+rwX, but the UID stays root).
+        # The first clone succeeds into the root-owned dir (group perms
+        # suffice), then EVERY later git op as uid 1000 dies with
+        # 'detected dubious ownership'. NO safe.directory anywhere - git's
+        # ownership guard stays fully on; this chown is the fix.
+        # Convergence is order-independent: sync-first -> clone creates
+        # /data/vault as 1000, kubelet finds the subPath existing, chown
+        # no-ops; pod-first -> kubelet root-creates, chown fixes ownership
+        # before the first sync run. chown IN PLACE only - never rm/mv a
+        # live subPath bind target (running containers keep the old inode).
+        - name: fix-permissions
+          image: git.arneklein.net/kleinar/broker-mcp:v0.2.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            # One-shot root for chown only - deliberate per-container
+            # override of the pod-level runAsNonRoot (standard
+            # fix-permissions idiom; busybox chown, zero new deps).
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          command: ["/bin/sh", "-c"]
+          args:
+            # $$-doubled: Flux strict post-build envsubst parses every
+            # dollar in the rendered set (broker-args precedent, PR #178);
+            # $$ collapses to $, then /bin/sh expands the command subst.
+            - >-
+              chown -R 1000:1000 /vault /staging 2>/dev/null || true;
+              echo "fix-permissions: $$(stat -c '%u:%g' /vault) /vault, $$(stat -c '%u:%g' /staging) /staging"
+          volumeMounts:
+            - name: vault
+              mountPath: /vault
+              subPath: vault
+            - name: staging
+              mountPath: /staging
+              subPath: staging
       containers:
         - name: broker
           image: git.arneklein.net/kleinar/broker-mcp:v0.2.0

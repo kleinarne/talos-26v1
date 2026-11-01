@@ -14,7 +14,12 @@
 # Zero new dependencies: python3 + subprocess to git are in the image.
 # FAILS LOUD: an empty or missing mirror keeps the read container
 # NotReady - the documented manual vault-sync bootstrap job is the
-# repair.
+# repair. Failures are TRUTHFUL: a nonzero git exit always surfaces the
+# exit code + stderr tail (2026-11-01 defect: root-ownership 'dubious
+# ownership' was misreported as 'no commit checked out'). Ownership
+# itself is fixed at pod start by the fix-permissions initContainer
+# (40-broker-deployment.yaml); this probe never papers over it with
+# safe.directory.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -46,6 +51,17 @@ data:
     except subprocess.TimeoutExpired:
         fail("git rev-parse timed out")
     if head.returncode != 0 or not head.stdout.strip():
+        # Truthful failure (2026-11-01 live reinstall defect: a root-owned
+        # mirror - kubelet creates missing subPath dirs as root - made
+        # rev-parse die 'dubious ownership' and this probe reported 'no
+        # commit checked out' while the commit existed). The git exit code
+        # and stderr tail must always reach the failure message.
+        detail = head.stderr.strip().replace("\n", " | ")[-300:]
+        if head.returncode != 0:
+            fail(
+                "git rev-parse failed at " + path
+                + " (git exit " + str(head.returncode) + "): " + detail
+            )
         fail("no commit checked out at " + path)
     print("readyz: OK - " + path + " at " + head.stdout.strip()[:12])
     sys.exit(0)
