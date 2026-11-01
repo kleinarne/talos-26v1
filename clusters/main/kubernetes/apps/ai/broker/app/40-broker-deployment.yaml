@@ -254,9 +254,11 @@ spec:
                   name: broker-secrets
                   key: mcpo-api-key
             - name: VAULT_OWNER
-              value: "kleinar"
+              # Declared once: postBuild.substitute in ../ks.yaml
+              value: "${VAULT_OWNER}"
             - name: VAULT_REPO
-              value: "pkm"
+              # Declared once: postBuild.substitute in ../ks.yaml
+              value: "${VAULT_REPO}"
             - name: STAGE_BRANCH_PREFIX
               value: "park"
             - name: HOME

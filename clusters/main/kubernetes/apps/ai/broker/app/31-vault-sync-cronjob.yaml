@@ -60,10 +60,11 @@ spec:
                   drop: ["ALL"]
               env:
                 - name: VAULT_OWNER
-                  value: "kleinar"
+                  # Declared once: postBuild.substitute in ../ks.yaml
+                  value: "${VAULT_OWNER}"
                 - name: VAULT_REPO
-                  # Explicit target: the fresh Core repo (kleinar/pkm).
-                  value: "pkm"
+                  # Declared once: postBuild.substitute in ../ks.yaml
+                  value: "${VAULT_REPO}"
                 - name: HOME
                   value: /tmp
               volumeMounts:

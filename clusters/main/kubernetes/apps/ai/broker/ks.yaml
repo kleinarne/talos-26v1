@@ -1,3 +1,26 @@
+# Broker-local substitution values (single-declaration rule, 2026-11-01
+# review spec): VAULT_OWNER and VAULT_REPO appear exactly ONCE each in
+# this directory - here, as postBuild.substitute entries on the broker
+# Kustomization. The env blocks in 31-vault-sync-cronjob.yaml and
+# 40-broker-deployment.yaml reference the variables; they render
+# byte-identical to the previously hardcoded values.
+#
+# Why here and not clusterenv.yaml: single-consumer values stay with the
+# chart; clusterenv keeps multi-chart values (domain, VIPs, CIDRs) and
+# stays off the genconfig/encryption-churn path.
+#
+# Why postBuild.substitute (inline map) and not another substituteFrom:
+# flux-entry force-patches every app Kustomization with substituteFrom
+# cluster-config (no merge key on the list - a second entry here could
+# be lost to the patch); the inline substitute map coexists with it and
+# takes precedence, so both cluster-config vars and these app-local
+# values resolve.
+#
+# Rename procedure (the point of this change): rename on the forge ->
+# update the one value below -> merge. No rename-forwarding dependence.
+# Residual server-side check at rename time: the rescoped PATs still
+# grant on the renamed repo (they bind to the repo, not the name -
+# verify, don't assume).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -10,4 +33,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: cluster
-
+  postBuild:
+    substitute:
+      VAULT_OWNER: kleinar
+      VAULT_REPO: pkm
