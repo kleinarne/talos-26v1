@@ -1,14 +1,37 @@
-# stage_write glue — the broker's write-back path (the only custom code
-# in the mesh, per the ratified assembly). Deliberately a ConfigMap, not
-# an image rebuild: the script rides the already-built, digest-pinned
-# broker image (mcpo + pinned mcp SDK are already inside; the glue is a
-# FastMCP stdio server and adds ZERO new dependencies), and code-in-repo
-# goes through the same review-before-push + pre-merge gates as every
-# other broker artifact.
+# park glue - the broker's write path (write port, :8001). One MCP tool:
+# park = push + ensure-open-PR. Deliberately a ConfigMap, not an image
+# rebuild: the script rides the already-built, digest-pinned broker image
+# (mcpo + pinned mcp SDK are already inside; the glue is a FastMCP stdio
+# server and adds ZERO new dependencies), and code-in-repo goes through
+# the same review-before-push + pre-merge gates as every other broker
+# artifact.
+#
+# Park semantics (amends the park-mechanics decision; operational spec):
+# - park is ONE broker action with idempotent convergence semantics;
+#   transact-atomicity is impossible across git + API, so the load-bearing
+#   spec is failure semantics + idempotency:
+#     success <=> branch pushed AND open PR exists
+#     failure is loud, never a silent half-park; retries converge
+# - a park without branch= creates a fresh dated park/<stamp> branch;
+#   re-parking the same branch pushes new commits onto it (ff only) and
+#   ENSURES the open PR (create-if-none-exists), so a retry after a
+#   half-park (pushed but PR-create failed) converges instead of
+#   duplicating
+# - rejected PRs are never reopened: a re-park of the same branch opens a
+#   fresh PR (rejection history lives in the closed PRs); if the forge
+#   refuses a second PR for the branch, the error says so and the remedy
+#   is a fresh branch
+# - the glue NEVER merges and NEVER pushes main; ratify (approve + merge)
+#   is a human act
+#
+# Auth: the token is read from the mounted secret and passed per
+# invocation - to git as an Authorization header (git -c http.extraHeader,
+# clean remote URL always), to the Forgejo REST API in the Authorization
+# header. It is never written to any file, config, or remote URL.
 #
 # Envsubst note: strict post-build envsubst parses every dollar in the
 # rendered set. This script intentionally contains ZERO dollar signs
-# (verified); the yml around it carries none either.
+# (re-verified).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,33 +39,41 @@ metadata:
   namespace: broker
 data:
   stage_server.py: |
-    """stage_write: git staging-write glue for the mesh broker (write path).
+    """park: git staging-write glue for the broker write path (:8001).
 
-    ONE MCP tool. It writes note files onto a dated staging branch of the
-    vault repo and pushes that branch. It NEVER merges and NEVER pushes
-    main. Merging is a human act (AI-actor model, PKM architecture).
+    ONE MCP tool. Park = push + ensure-open-PR, one broker action with
+    idempotent convergence semantics:
+
+      - success means the branch is pushed AND an open PR exists for it;
+      - failure is loud, never a silent half-park; retries converge
+        (re-park the same branch: new commits push onto it ff-only and
+        the PR is ensured, not duplicated);
+      - rejected PRs are never reopened - a re-park of the same branch
+        opens a fresh PR; rejection history lives in the closed PRs.
+
+    It NEVER merges and NEVER pushes main. Ratify (approve + merge) is a
+    human act.
 
     Layout:
       /staging               RW PVC subPath, this sidecar's workspace
       /staging/vault-write   dedicated git clone owned by this glue
       /secrets/...           Forgejo token file, read at runtime only
 
-    Auth: the token is read from the mounted secret and passed to git as an
-    Authorization header per invocation (git -c http.extraHeader). It is
-    never written to any file, config, or remote URL. The clean remote URL
-    plus per-invocation header is the Azure-DevOps-PAT pattern.
-
-    The glue keeps its own clone: the shared worktree that the sync script
-    used to pre-create was unusable from inside this pod (its gitdir pointer
-    and the shared object store both live under the read-only /vault mount),
-    so nothing here ever touches the main clone through the ro path.
+    Auth: the token is read from the mounted secret and passed per
+    invocation - to git as an Authorization header (git -c
+    http.extraHeader, clean remote URL always), to the Forgejo REST API
+    in the Authorization header. It is never written to any file,
+    config, or remote URL.
     """
 
     import base64
     import fcntl
+    import json
     import os
     import subprocess
     import sys
+    import urllib.error
+    import urllib.request
     from datetime import datetime, timezone
     from pathlib import PurePosixPath
 
@@ -59,13 +90,15 @@ data:
     WEB_URL = os.environ.get("WEB_URL", "https://git.arneklein.net")
     OWNER = os.environ.get("VAULT_OWNER", "kleinar")
     REPO = os.environ.get("VAULT_REPO", "pkm")
-    BRANCH_PREFIX = os.environ.get("STAGE_BRANCH_PREFIX", "ai-stage")
-    GIT_NAME = os.environ.get("STAGE_GIT_NAME", "vault-broker stage_write")
-    GIT_EMAIL = os.environ.get("STAGE_GIT_EMAIL", "stage-write@broker.svc")
+    BRANCH_PREFIX = os.environ.get("STAGE_BRANCH_PREFIX", "park")
+    BASE_BRANCH = os.environ.get("STAGE_BASE_BRANCH", "main")
+    GIT_NAME = os.environ.get("STAGE_GIT_NAME", "broker park")
+    GIT_EMAIL = os.environ.get("STAGE_GIT_EMAIL", "park@broker.svc")
 
     MAX_FILES = 20
     MAX_FILE_BYTES = 262144
     MAX_TOTAL_BYTES = 1048576
+    API_TIMEOUT = 30
     FORBIDDEN_ROOTS = frozenset([".git", ".obsidian", ".trash", ".stversions"])
 
 
@@ -120,7 +153,7 @@ data:
         if os.path.isdir(os.path.join(CLONE_DIR, ".git")):
             return
         url = FORGEJO_URL + "/" + OWNER + "/" + REPO + ".git"
-        log("stage glue: initial clone of " + OWNER + "/" + REPO)
+        log("park glue: initial clone of " + OWNER + "/" + REPO)
         proc = git(token, ["clone", url, CLONE_DIR], cwd=STAGING)
         if proc.returncode != 0:
             err = proc.stderr.replace(token, "[redacted]")
@@ -137,10 +170,32 @@ data:
         if not parts or ".." in parts:
             raise ValueError("path must not traverse upward: " + path[:80])
         if not path.endswith(".md"):
-            raise ValueError("only .md note paths are stageable: " + path[:80])
+            raise ValueError("only .md note paths are parkable: " + path[:80])
         if parts[0] in FORBIDDEN_ROOTS or ".git" in parts:
-            raise ValueError("path root is not stageable: " + path[:80])
+            raise ValueError("path root is not parkable: " + path[:80])
         return p.as_posix()
+
+
+    def validate_branch(branch):
+        """Re-park target must be a git-valid name under the park prefix."""
+        if not branch or len(branch) > 100:
+            raise ValueError("branch must be 1-100 characters")
+        if not branch.startswith(BRANCH_PREFIX + "/"):
+            raise ValueError(
+                "branch must be under " + BRANCH_PREFIX + "/ : " + branch[:80]
+            )
+        if "@{" in branch:
+            raise ValueError("branch must not contain @{ : " + branch[:80])
+        for part in branch.split("/"):
+            if (
+                not part
+                or part.startswith(".")
+                or ".." in part
+                or part.endswith(".lock")
+                or any(c in part for c in " ~^:?*[\\")
+            ):
+                raise ValueError("invalid git branch name: " + branch[:80])
+        return branch
 
 
     def pick_branch(token):
@@ -159,7 +214,110 @@ data:
         return branch
 
 
-    def stage_write_impl(files, message):
+    def api(token, method, path, body=None):
+        """Forgejo REST call, token in the Authorization header, never in URLs."""
+        url = FORGEJO_URL + "/api/v1" + path
+        headers = {
+            "Accept": "application/json",
+            "Authorization": "token " + token,
+        }
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=API_TIMEOUT) as resp:
+                raw = resp.read().decode("utf-8", "replace") or "{}"
+                return resp.status, json.loads(raw)
+        except urllib.error.HTTPError as err:
+            raw = err.read().decode("utf-8", "replace") or "{}"
+            try:
+                parsed = json.loads(raw)
+            except ValueError:
+                parsed = {"raw": raw[-1000:]}
+            return err.code, parsed
+        except urllib.error.URLError as err:
+            raise RuntimeError(
+                "forgejo api unreachable ("
+                + method + " " + path + "): " + str(err.reason)
+            )
+
+
+    def open_pr_for(token, branch):
+        path = "/repos/" + OWNER + "/" + REPO + "/pulls?state=open&limit=50"
+        status, payload = api(token, "GET", path)
+        if status != 200:
+            raise RuntimeError(
+                "listing open PRs failed (HTTP " + str(status) + "): "
+                + json.dumps(payload)[:500]
+            )
+        for pr in payload if isinstance(payload, list) else []:
+            head = (pr.get("head") or {}).get("ref") or ""
+            base = (pr.get("base") or {}).get("ref") or ""
+            if head == branch and base == BASE_BRANCH:
+                return pr
+        return None
+
+
+    def pr_summary(payload):
+        num = payload.get("number")
+        url = payload.get("html_url") or (
+            WEB_URL + "/" + OWNER + "/" + REPO + "/pulls/" + str(num)
+        )
+        return num, url
+
+
+    def ensure_open_pr(token, branch, title, body_text):
+        """Create-if-none-exists. Returns (pr, created)."""
+        existing = open_pr_for(token, branch)
+        if existing is not None:
+            return existing, False
+        status, payload = api(
+            token,
+            "POST",
+            "/repos/" + OWNER + "/" + REPO + "/pulls",
+            {"title": title, "body": body_text, "head": branch, "base": BASE_BRANCH},
+        )
+        if status == 201:
+            return payload, True
+        if status in (409, 422):
+            raced = open_pr_for(token, branch)
+            if raced is not None:
+                return raced, False
+            raise RuntimeError(
+                "PR create refused (HTTP " + str(status) + ") and no open PR for "
+                + branch + " - if a PR for this branch already exists in a closed "
+                "state the forge refuses a second one; park a FRESH branch instead. "
+                "Detail: " + json.dumps(payload)[:500]
+            )
+        raise RuntimeError(
+            "PR create failed (HTTP " + str(status) + "): "
+            + json.dumps(payload)[:500]
+        )
+
+
+    def pr_title_of(message, title):
+        t = (title or "").strip()
+        if t:
+            return t[:120]
+        first = message.strip().splitlines()[0] if message.strip() else "park"
+        return ("Park: " + first)[:120]
+
+
+    def pr_body_of(message, sha, files):
+        lines = [
+            "Parked by the broker write path (push + ensure-open-PR).",
+            "Commit: " + sha,
+            "Files:",
+        ]
+        lines.extend("- " + f for f in files)
+        lines.append("")
+        lines.append("Ratify = human review and merge. The broker never merges.")
+        return "\n".join(lines)
+
+
+    def park_impl(files, message, branch, title):
         if not files or len(files) > MAX_FILES:
             raise ValueError("files: provide 1 to " + str(MAX_FILES) + " entries")
         msg = (message or "").strip()
@@ -184,6 +342,11 @@ data:
                 raise ValueError("call exceeds total budget (1 MiB)")
             cleaned.append((p, f.content))
 
+        if branch:
+            branch = validate_branch(branch)
+        else:
+            branch = None
+
         token = read_token()
         os.makedirs(STAGING, exist_ok=True)
         lock = open(LOCK_FILE, "a+")
@@ -191,9 +354,19 @@ data:
             fcntl.flock(lock, fcntl.LOCK_EX)
             ensure_clone(token)
             git(token, ["fetch", "--prune", "origin"])
-            base = git_out(token, ["rev-parse", "--short", "origin/main"]).strip()
-            branch = pick_branch(token)
-            git(token, ["checkout", "-f", "-b", branch, "origin/main"])
+            base = git_out(token, ["rev-parse", "--short", "origin/" + BASE_BRANCH]).strip()
+
+            if branch is None:
+                branch = pick_branch(token)
+                on_origin = False
+            else:
+                on_origin = git(
+                    token,
+                    ["show-ref", "--verify", "--quiet", "refs/remotes/origin/" + branch],
+                    check=False,
+                ).returncode == 0
+            start = "origin/" + branch if on_origin else "origin/" + BASE_BRANCH
+            git(token, ["checkout", "-f", "-B", branch, start])
             git(token, ["clean", "-fd"])
 
             for p, content in cleaned:
@@ -212,45 +385,79 @@ data:
                 ln for ln in git_out(token, ["diff", "--cached", "--name-only"]).splitlines()
                 if ln.strip()
             ]
+
             if not staged:
-                git(token, ["checkout", "-f", "--detach", "origin/main"])
-                git(token, ["branch", "-D", branch])
-                return {
-                    "status": "no-change",
-                    "detail": "content matches origin/main; nothing staged",
-                    "files": [p for p, _ in cleaned],
-                }
+                if not on_origin:
+                    # Fresh (or local-only) branch with no delta: nothing
+                    # pushed, nothing reviewable - leave no residue.
+                    git(token, ["checkout", "-f", "--detach", "origin/" + BASE_BRANCH])
+                    git(token, ["branch", "-D", branch])
+                    return {
+                        "status": "no-change",
+                        "detail": "content matches origin/" + BASE_BRANCH
+                                  + "; nothing parked",
+                        "files": [p for p, _ in cleaned],
+                    }
+                # Existing origin branch, no new commits: this is a
+                # convergence retry or a content no-op - fall through to
+                # ensure-open-PR.
+                sha = git_out(token, ["rev-parse", "--short", "origin/" + branch]).strip()
+                pushed = False
+            else:
+                git(token, ["commit", "-m", msg])
+                sha = git_out(token, ["rev-parse", "--short", "HEAD"]).strip()
+                if not branch.startswith(BRANCH_PREFIX + "/"):
+                    raise RuntimeError("branch guard violated")
+                git(token, ["push", "origin",
+                            "refs/heads/" + branch + ":refs/heads/" + branch])
+                pushed = True
+                log("park: pushed " + branch + " (" + sha + ", "
+                    + str(len(staged)) + " files)")
 
-            git(token, ["commit", "-m", msg])
-            sha = git_out(token, ["rev-parse", "--short", "HEAD"]).strip()
+            # park succeeds <=> branch pushed AND open PR exists.
+            listed = staged if staged else [p for p, _ in cleaned]
+            try:
+                pr, created = ensure_open_pr(
+                    token, branch,
+                    pr_title_of(msg, title),
+                    pr_body_of(msg, sha, listed),
+                )
+            except RuntimeError as err:
+                if pushed:
+                    raise RuntimeError(
+                        "HALF-PARK (loud, by design): branch " + branch
+                        + " pushed at " + sha + " but ensuring the open PR "
+                        "failed. Retry the SAME park with branch=" + branch
+                        + " to converge: the push is then a no-op and the PR "
+                        "will be ensured. Original error: " + str(err)
+                    )
+                raise
 
-            if not branch.startswith(BRANCH_PREFIX + "/"):
-                raise RuntimeError("branch guard violated")
-            git(token, ["push", "origin",
-                        "refs/heads/" + branch + ":refs/heads/" + branch])
-            compare = WEB_URL + "/" + OWNER + "/" + REPO + "/compare/main..." + branch
-            log("stage glue: pushed " + branch + " (" + sha + ", "
-                + str(len(staged)) + " files)")
+            pr_num, pr_url = pr_summary(pr)
+            if pushed:
+                log("park: open PR #" + str(pr_num) + " ensured for " + branch)
             return {
-                "status": "staged",
+                "status": "parked" if pushed else "converged",
                 "branch": branch,
                 "commit": sha,
+                "pr": pr_num,
+                "pr_url": pr_url,
+                "pr_created": created,
                 "base": base,
-                "files": staged,
+                "files": listed,
                 "total_bytes": total,
-                "compare_url": compare,
-                "next": "Human review required: open the compare URL and merge "
-                        "or discard via Forgejo or Working Copy. stage_write "
-                        "never merges and never pushes main.",
+                "next": "Ratify: a human reviews, approves and merges "
+                        + pr_url + ". park never merges and never pushes "
+                        + BASE_BRANCH + ".",
             }
         finally:
             fcntl.flock(lock, fcntl.LOCK_UN)
             lock.close()
 
 
-    class StageFile(BaseModel):
+    class ParkFile(BaseModel):
         path: str = Field(
-            ..., description="Vault-relative note path, e.g. notes/example.md"
+            ..., description="Repo-relative note path, e.g. notes/example.md"
         )
         content: str = Field(
             ..., description="Full note content (UTF-8 text), written byte-exact"
@@ -261,21 +468,25 @@ data:
 
 
     @mcp.tool()
-    def stage_write(files: list[StageFile], message: str) -> dict:
-        """Stage note writes to a NEW dated branch of the vault repo and push it.
+    def park(files: list[ParkFile], message: str, branch: str = "", title: str = "") -> dict:
+        """Park note writes: commit .md files onto a park/* branch, push it,
+        and ensure an open PR exists (create if none).
 
-        Write-back path of the mesh broker (AI-actor model): the tool only ever
-        pushes a fresh ai-stage/... branch. It never merges and never pushes
-        main; a human reviews and merges (or discards) via the compare URL in
-        the result. Reads are served by the OTHER broker tool server on port
-        8000; this tool has no read access to the vault. Paths must be
-        relative .md note paths; content is written byte-exact. Existing notes
-        are overwritten on the staging branch only (the original stays on
-        main until a human merges).
+        Park is ONE action: success means the branch is pushed AND an open
+        PR exists. Retries with the same branch converge instead of
+        duplicating. Without branch= a fresh dated park/<stamp> branch is
+        created; pass the same branch to add commits to an existing park.
+        Rejected PRs are never reopened - re-parking the branch opens a
+        fresh PR; if the forge refuses a second PR for the branch, the
+        error says so and the remedy is a fresh branch. The tool never
+        merges and never pushes main; ratify (approve + merge) is a human
+        act. Paths are repo-relative .md note paths; content is written
+        byte-exact. Reads are served by the OTHER broker tool server on
+        port 8000; this tool has no read access to the repo.
         """
-        return stage_write_impl(files, message)
+        return park_impl(files, message, (branch or "").strip(), (title or "").strip())
 
 
     if __name__ == "__main__":
-        log("stage glue: serving stage_write on stdio")
+        log("park glue: serving park on stdio")
         mcp.run()
