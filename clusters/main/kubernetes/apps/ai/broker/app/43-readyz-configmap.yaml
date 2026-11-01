@@ -1,14 +1,20 @@
-# Readiness gate for the broker pod (2026-10-31 review finding: /docs
-# only proves the mcpo wrapper listens; on a fresh PVC kubelet CREATES
-# missing subPath dirs, so an EMPTY vault mirror was served Ready and
-# silent). The exec probe runs this script on both containers:
-#   - broker (read path): /vault must be a git worktree with a commit
-#     checked out on HEAD - i.e. the vault-sync bootstrap clone ran.
-#   - stage-glue (write path): same gate for the glue's own clone at
-#     /staging/vault-write (created lazily by the first park).
+# Readiness gate for the broker READ container (2026-10-31 review
+# finding: /docs only proves the mcpo wrapper listens; on a fresh PVC
+# kubelet CREATES missing subPath dirs, so an EMPTY vault mirror was
+# served Ready and silent). The exec probe runs this script with
+# READYZ_REPO=/vault: the read mirror must be a git worktree with a
+# commit checked out on HEAD - i.e. the vault-sync bootstrap clone ran.
+#
+# NOT used on the stage-glue (write) container: its clone is created
+# lazily by the first park, so a data-based gate there would deadlock
+# the write path after a fresh PVC (PR review 2026-11-01: glue NotReady
+# drops the pod from the service on BOTH ports, the first park never
+# arrives, the clone is never created). The glue keeps httpGet /docs.
+#
 # Zero new dependencies: python3 + subprocess to git are in the image.
-# FAILS LOUD: an empty or missing mirror keeps the pod NotReady - the
-# documented manual vault-sync bootstrap job is the repair.
+# FAILS LOUD: an empty or missing mirror keeps the read container
+# NotReady - the documented manual vault-sync bootstrap job is the
+# repair.
 apiVersion: v1
 kind: ConfigMap
 metadata:

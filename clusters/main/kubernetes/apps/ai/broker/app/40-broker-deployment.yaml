@@ -34,13 +34,20 @@
 # not triggered. Merge ONLY after v0.2.0 is pushed to the registry -
 # Recreate kills the old pod before pulling the new image.
 #
-# Readiness hardening (2026-10-31 review): /docs only proves the mcpo
-# wrapper is up - on a fresh PVC kubelet CREATES missing subPath dirs,
-# so the old probe could mark an EMPTY mirror Ready and serve it
-# silently. The exec probe (python, already in the image) fails until
-# the vault mirror holds a checked-out commit; same gate for the glue's
-# own clone on the staging side. Bootstrap stays the documented manual
+# Readiness hardening (2026-10-31 review): on the READ container /docs
+# only proved the mcpo wrapper was up - on a fresh PVC kubelet CREATES
+# missing subPath dirs, so the old probe could mark an EMPTY mirror
+# Ready and serve it silently. The READ container now uses an exec
+# probe (python, already in the image) that fails until the vault mirror
+# holds a checked-out commit. Bootstrap stays the documented manual
 # vault-sync job run.
+#
+# The WRITE container (stage-glue) keeps its httpGet /docs probe
+# deliberately (PR review 2026-11-01): its clone is created lazily by
+# the first park, so a data-based gate there would deadlock the write
+# path after a fresh PVC - glue NotReady drops the pod from the service
+# on BOTH ports, the first park never arrives, the clone is never
+# created. mcpo-up is the correct gate for a self-initializing path.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -166,7 +173,7 @@ spec:
               subPath: staging
             - name: tmp
               mountPath: /tmp
-            - name: readyz
+            - name: readyz          # READ container only: empty-mirror gate
               mountPath: /readyz
               readOnly: true
         - name: stage-glue
@@ -204,14 +211,22 @@ spec:
               value: "park"
             - name: HOME
               value: /tmp
-            - name: READYZ_REPO
-              value: /staging/vault-write
           ports:
             - name: http-write
               containerPort: 8001
           readinessProbe:
-            exec:
-              command: ["python", "/readyz/readyz.py"]
+            # mcpo-up is the correct gate for the write path: the glue's
+            # clone is created lazily by the FIRST park (ensure_clone), so a
+            # data-based probe here would deadlock post-reinstall (glue
+            # NotReady -> no endpoints on EITHER port -> the first park never
+            # arrives -> clone never created). The empty-mirror invariant is
+            # a READ path property; the write path self-initializes. First
+            # park after a fresh-PVC reinstall includes the initial clone
+            # inline - roughly 10-30 s; the mcpo/Open WebUI request timeout
+            # must tolerate that.
+            httpGet:
+              path: /docs
+              port: http-write
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 6
@@ -242,6 +257,3 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
-            - name: readyz
-              mountPath: /readyz
-              readOnly: true
