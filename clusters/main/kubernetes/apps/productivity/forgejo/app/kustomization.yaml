@@ -5,3 +5,4 @@ resources:
   - admin-secret.yaml
   - backup.yaml
   - helm-release.yaml
+  - internal-ingress.yaml

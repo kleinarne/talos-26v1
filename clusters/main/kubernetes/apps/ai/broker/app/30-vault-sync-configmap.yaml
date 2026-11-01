@@ -1,13 +1,19 @@
-# Clone/pull script shared by the recurring CronJob and one-off manual runs.
-# - First run: full clone of vault main from Forgejo (in-cluster service URL,
-#   token auth, zero DNS-split-horizon dependency).
-# - Later runs: fast-forward pull only. Divergence is an error (the broker
-#   must mirror merged-to-main state; unmerged desktop state stays invisible
-#   by design — the topology-enforced permission model).
-# NOTE: every shell dollar below is doubled. Flux post-build envsubst (strict)
-# runs over this ConfigMap and would otherwise parse the script's variables
-# as its own substitution variables and fail the build. The rendered output
-# carries single dollars. VAULT_OWNER/VAULT_REPO come from the CronJob env.
+# Mirror refresh of Core main for the broker read port (:8000).
+# Refactor (2026-10-31 live diagnosis of the pre-refactor clone):
+# - auth is per invocation (http.extraHeader); the old script baked the
+#   token into the clone-time URL, so every later pull silently relied on
+#   a credential baked at clone time and broke on rotation (and the
+#   mounted secret was never consulted).
+# - the remote is re-pointed to the clean URL every run; the old remote
+#   was whatever clone time recorded (rename/redirect hazard).
+# - divergence stays a LOUD ff-only error. The mirror is disposable;
+#   wipe + reclone (namespace delete, fresh PVC) is the designed repair,
+#   never a silent reset.
+# NOTE: every shell dollar below is doubled. Flux post-build envsubst
+# (strict) runs over this ConfigMap and would otherwise parse the
+# script's variables as its own substitution variables and fail the
+# build. The rendered output carries single dollars. VAULT_OWNER/
+# VAULT_REPO come from the CronJob env.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,27 +23,38 @@ data:
   sync.sh: |
     #!/bin/sh
     set -eu
+    # Single-writer lock: concurrencyPolicy: Forbid only serializes jobs
+    # the CronJob controller creates; a manual bootstrap job (kubectl
+    # create job --from=cronjob/vault-sync) is NOT covered by it and could
+    # race a scheduled run - two clones or two ff-merges on the same PVC
+    # worktree. The lock file on the PVC closes that gap (both paths run
+    # this script; busybox flock holds it for the shell via fd 9).
+    exec 9>/data/.sync.lock
+    flock 9
     TOKEN="$$(cat /secrets/forgejo-token)"
-    URL="http://x-access-token:$${TOKEN}@forgejo-http.forgejo.svc.cluster.local:3000/$${VAULT_OWNER}/$${VAULT_REPO}.git"
-
-    mkdir -p /data/staging
+    # HTTPS over the in-cluster path (git.<domain> pinned to the
+    # nginx-internal LB VIP by the job's hostAliases; nginx-internal
+    # serves the *.<domain> wildcard LE cert, so TLS validates with the
+    # system CAs in alpine/git): the old in-cluster plaintext URL put
+    # the PAT on the wire in cleartext.
+    URL="https://git.${DOMAIN_0}/$${VAULT_OWNER}/$${VAULT_REPO}.git"
+    AUTH="Authorization: Basic $$(printf '%s' "x-access-token:$${TOKEN}" | base64 | tr -d '\n')"
 
     if [ -d /data/vault/.git ]; then
-      echo "vault: pulling (ff-only)"
-      git -C /data/vault pull --ff-only
+      echo "vault: refreshing mirror (fetch + ff-only)"
+      git -c "http.extraHeader=$${AUTH}" -C /data/vault remote set-url origin "$${URL}"
+      git -c "http.extraHeader=$${AUTH}" -C /data/vault fetch --prune origin
+      git -c "http.extraHeader=$${AUTH}" -C /data/vault merge --ff-only origin/main
     else
-      echo "vault: initial clone"
-      git clone "$${URL}" /data/vault
+      echo "vault: initial clone (clean URL, header auth)"
+      git -c "http.extraHeader=$${AUTH}" clone "$${URL}" /data/vault
     fi
 
-    # Staging workspace: owned by the stage_write glue sidecar, which keeps
-    # its OWN clone at <PVC>/staging/vault-write. The worktree this script
-    # used to pre-create here was defective from inside the broker pod —
-    # a worktree shares the main clone's .git, and that path is only
-    # reachable through the read-only /vault mount (plus the gitdir
-    # pointer records sync-pod paths, not broker-pod paths). Deregister
-    # it and drop the stale pointer file, idempotently.
-    rm -rf /data/vault/.git/worktrees/staging
-    rm -f /data/staging/.git
+    # Staging subPath directory for the write-path glue mount (the glue
+    # owns its own clone inside). Fresh-PVC note: the broker Deployment's
+    # subPath mounts fail LOUDLY until this script has run once (vault/
+    # and staging/ must exist on the volume) - deliberate: an empty read
+    # mirror must not serve silently.
+    mkdir -p /data/staging
 
     echo "vault: HEAD is $$(git -C /data/vault rev-parse --short HEAD)"

@@ -1,0 +1,55 @@
+# Forgejo over the INTERNAL ingress class - in-cluster TLS endpoint.
+#
+# The broker write path (stage glue + vault-sync) authenticates to Forgejo
+# with a PAT and must not send it over plaintext http://forgejo-http.
+# The public hostname git.<domain> resolves (public DNS, Cloudflare-fronted
+# surface) off-cluster, so pods using it egress out of the cluster network
+# and back - the path that does not work here. This ingress publishes the
+# SAME host on nginx-internal instead:
+#   pod -> nginx-internal LB VIP -> forgejo-http ClusterIP
+# NOT a hairpin: MetalLB runs L2 mode (VIP = secondary address on the
+# node, ARP-announced, no gateway route) and this is a single-node
+# cluster (k8s-control-1, allowSchedulingOnControlPlanes), so a pod's
+# traffic to the VIP is DNAT'd by Cilium (kubeProxyReplacement) locally
+# and never leaves the node - no LAN traversal, no NAT. Empirically
+# proven 2026-10-22 (PR #175 debug pod): TLS to the nginx-internal VIP
+# from an in-cluster pod completed ("TLS ok, no vhost" 404); the only
+# missing piece was this vhost, added here. externalTrafficPolicy: Local
+# is harmless single-node.
+#
+# Broker/vault-sync pods pin git.<domain> to the internal LB IP via
+# hostAliases, so their https://git.<domain> traffic takes this path
+# while TLS still validates: nginx-internal serves the *.<domain>
+# wildcard LE cert (default-ssl-certificate).
+#
+# No forward-auth: this path is machine-to-machine (PAT bearer header),
+# not a browser surface. No cert-manager annotations: the TLS secret is
+# the one the EXTERNAL ingress shim already owns and renews
+# (secretName: forgejo-tls, same host); a second shim Certificate for
+# the same host+secret would race the first.
+#
+# Deliberately NOT added to any Cloudflare-tunnel mapping (nginx-external
+# class owns the public surface; internal is LAN/WG + in-cluster only).
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: forgejo-internal
+  namespace: forgejo
+spec:
+  ingressClassName: internal
+  rules:
+    - host: git.${DOMAIN_0}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: forgejo-http
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - git.${DOMAIN_0}
+      secretName: forgejo-tls

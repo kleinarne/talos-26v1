@@ -10,3 +10,4 @@ resources:
   - 40-broker-deployment.yaml
   - 41-broker-service.yaml
   - 42-stage-glue-configmap.yaml
+  - 43-readyz-configmap.yaml

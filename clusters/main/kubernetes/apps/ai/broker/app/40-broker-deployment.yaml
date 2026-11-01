@@ -1,8 +1,8 @@
-# Broker — mcpo + ptdgrp in one container (stdio child), serving OpenAPI on :8000.
+# Broker - mcpo + ptdgrp in one container (stdio child), serving OpenAPI on :8000.
 # Egress-only: ClusterIP service, no ingress, reachable only from Open WebUI.
-# Ingress = read-only /vault mount; staging writes are the glue's job (later ½-burst).
+# Ingress = read-only /vault mount; parks are the glue's job (write port).
 #
-# Repo deltas vs. the burst package (defect fixes — see PR):
+# Repo deltas vs. the burst package (defect fixes - see PR):
 # - vault + staging mounts: subPath moved onto the volumeMounts. The sync
 #   CronJob clones into <PVC>/vault and stages into <PVC>/staging, so both
 #   mounts need their subPath there; the package had it on the PVC volume
@@ -14,17 +14,40 @@
 #   from the container env.
 #
 # stage-glue sidecar (write path): same image, second mcpo on :8001 wrapping
-# the stage_write glue (ConfigMap-mounted FastMCP server; no image rebuild).
-# It never mounts /vault — its only vault access is its own clone on the RW
-# /staging mount — and it is the ONLY container that mounts the Forgejo
-# token. Two separate tool servers = two separate toggles in Open WebUI, so
-# write access is granted per chat, deliberately.
+# the park glue (ConfigMap-mounted FastMCP server; no image rebuild).
+# park = push + ensure-open-PR via the Forgejo REST API; it never merges
+# and never pushes main (ratify is a human act). It never mounts /vault -
+# its only repo access is its own clone on the RW /staging mount - and it
+# is the ONLY container that mounts the Forgejo token (git push + PR
+# create). Two separate tool servers = two separate toggles in Open WebUI,
+# so write access is granted per chat, deliberately.
 #
-# v0.2.0 bump (2026-10-28): v0.1.0 + git binary only — the stage-glue
+# Fresh-PVC order dependency (reinstall): the subPath mounts (vault/,
+# staging/) fail LOUDLY until the first vault-sync run has created them on
+# the volume. Deliberate: an empty read mirror must not serve silently.
+# Bootstrap: kubectl create job --from=cronjob/vault-sync -n broker
+# vault-sync-manual, then the pods come up.
+#
+# v0.2.0 bump (2026-10-28): v0.1.0 + git binary only - the stage-glue
 # shells out to git; v0.1.0 shipped without it (Errno 2, caught live in the
 # first stage_write smoke). No mcpo/ptdgrp/lock changes; license-diff gate
-# not triggered. Merge ONLY after v0.2.0 is pushed to the registry —
+# not triggered. Merge ONLY after v0.2.0 is pushed to the registry -
 # Recreate kills the old pod before pulling the new image.
+#
+# Readiness hardening (2026-10-31 review): on the READ container /docs
+# only proved the mcpo wrapper was up - on a fresh PVC kubelet CREATES
+# missing subPath dirs, so the old probe could mark an EMPTY mirror
+# Ready and serve it silently. The READ container now uses an exec
+# probe (python, already in the image) that fails until the vault mirror
+# holds a checked-out commit. Bootstrap stays the documented manual
+# vault-sync job run.
+#
+# The WRITE container (stage-glue) keeps its httpGet /docs probe
+# deliberately (PR review 2026-11-01): its clone is created lazily by
+# the first park, so a data-based gate there would deadlock the write
+# path after a fresh PVC - glue NotReady drops the pod from the service
+# on BOTH ports, the first park never arrives, the clone is never
+# created. mcpo-up is the correct gate for a self-initializing path.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,8 +68,40 @@ spec:
         app: broker
     spec:
       automountServiceAccountToken: false   # pod needs no API access
+      # Forgejo over in-cluster TLS: git.<domain> is pinned to the
+      # nginx-internal LB VIP so https://git.<domain> from this pod stays
+      # on the node (public DNS fronts the nginx-external surface off-
+      # cluster via Cloudflare - the pod path that does not work).
+      # NOT a hairpin: MetalLB L2 VIP = secondary node address, and this
+      # single-node cluster DNATs pod->VIP locally via Cilium kube-proxy
+      # replacement (PR #175 debug pod proved TLS to the VIP works).
+      # nginx-internal serves the *.<domain> wildcard LE cert, so TLS
+      # validates for the pinned name. The internal ingress lives with
+      # the Forgejo app (internal-ingress.yaml).
+      hostAliases:
+        - ip: ${NGINX_INTERNAL_IP}
+          hostnames:
+            - git.${DOMAIN_0}
+      volumes:
+        - name: vault
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: staging
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: secrets
+          secret:
+            secretName: broker-secrets
+        - name: glue
+          configMap:
+            name: stage-glue-script
+        - name: readyz
+          configMap:
+            name: broker-readyz
+        - name: tmp
+          emptyDir: {}
       securityContext:
-        runAsNonRoot: true          # Stage-A A19: root bypasses DAC — this is the ro-enforcement knob
+        runAsNonRoot: true          # Stage-A A19: root bypasses DAC - this is the ro-enforcement knob
         runAsUser: 1000             # node user in the image
         runAsGroup: 1000
         fsGroup: 1000
@@ -63,7 +118,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-          # K8s expands $(VAR) from env into args (after Flux envsubst rendered $$ → $).
+          # K8s expands $(VAR) from env into args (after Flux envsubst rendered $$ to $).
           args:
             - --host
             - 0.0.0.0
@@ -88,12 +143,12 @@ spec:
             - name: http
               containerPort: 8000
           readinessProbe:
-            httpGet:
-              path: /docs
-              port: http
+            exec:
+              command: ["python", "/readyz/readyz.py"]
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 6
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /docs
@@ -114,10 +169,13 @@ spec:
               readOnly: true      # ptdgrp write tools fail closed at the filesystem
               subPath: vault      # repo lives at <PVC>/vault (sync clones into it)
             - name: staging
-              mountPath: /staging  # RW worktree for the staging glue; NOT exposed to MCP tools
+              mountPath: /staging  # RW worktree for the park glue; NOT exposed to MCP tools
               subPath: staging
             - name: tmp
               mountPath: /tmp
+            - name: readyz          # READ container only: empty-mirror gate
+              mountPath: /readyz
+              readOnly: true
         - name: stage-glue
           image: git.arneklein.net/kleinar/broker-mcp:v0.2.0
           imagePullPolicy: IfNotPresent
@@ -149,18 +207,30 @@ spec:
               value: "kleinar"
             - name: VAULT_REPO
               value: "pkm"
+            - name: STAGE_BRANCH_PREFIX
+              value: "park"
             - name: HOME
               value: /tmp
           ports:
             - name: http-write
               containerPort: 8001
           readinessProbe:
+            # mcpo-up is the correct gate for the write path: the glue's
+            # clone is created lazily by the FIRST park (ensure_clone), so a
+            # data-based probe here would deadlock post-reinstall (glue
+            # NotReady -> no endpoints on EITHER port -> the first park never
+            # arrives -> clone never created). The empty-mirror invariant is
+            # a READ path property; the write path self-initializes. First
+            # park after a fresh-PVC reinstall includes the initial clone
+            # inline - roughly 10-30 s; the mcpo/Open WebUI request timeout
+            # must tolerate that.
             httpGet:
               path: /docs
               port: http-write
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 6
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /docs
@@ -187,18 +257,3 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
-      volumes:
-        - name: vault
-          persistentVolumeClaim:
-            claimName: vault-clone
-        - name: staging
-          persistentVolumeClaim:
-            claimName: vault-clone
-        - name: secrets
-          secret:
-            secretName: broker-secrets
-        - name: glue
-          configMap:
-            name: stage-glue-script
-        - name: tmp
-          emptyDir: {}
