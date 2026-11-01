@@ -31,6 +31,17 @@ data:
     # this script; busybox flock holds it for the shell via fd 9).
     exec 9>/data/.sync.lock
     flock 9
+    # Kubelet creates missing subPath dirs at broker-pod mount with ROOT
+    # uid (fsGroup fixes only the gid); the ns enforces PodSecurity
+    # restricted:latest, so no root container can chown it back in-band.
+    # safe.directory is git's designed, path-scoped trust declaration for
+    # exactly this kubelet pattern. CRITICAL: git only honors it from a
+    # SYSTEM or GLOBAL config - via -c and via repo config it is IGNORED
+    # (deliberate: a hostile repo must not be able to self-declare trust).
+    # Plain set (not --add) = idempotent; HOME=/tmp is pod-ephemeral, so
+    # no config file ever lands on the PVC. No-op when the dir is already
+    # uid-1000 (sync-first convergence).
+    git config --global safe.directory /data/vault
     TOKEN="$$(cat /secrets/forgejo-token)"
     # HTTPS over the in-cluster path (git.<domain> pinned to the
     # nginx-internal LB VIP by the job's hostAliases; nginx-internal
