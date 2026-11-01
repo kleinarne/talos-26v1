@@ -1,8 +1,8 @@
-# Broker — mcpo + ptdgrp in one container (stdio child), serving OpenAPI on :8000.
+# Broker - mcpo + ptdgrp in one container (stdio child), serving OpenAPI on :8000.
 # Egress-only: ClusterIP service, no ingress, reachable only from Open WebUI.
-# Ingress = read-only /vault mount; staging writes are the glue's job (later ½-burst).
+# Ingress = read-only /vault mount; parks are the glue's job (write port).
 #
-# Repo deltas vs. the burst package (defect fixes — see PR):
+# Repo deltas vs. the burst package (defect fixes - see PR):
 # - vault + staging mounts: subPath moved onto the volumeMounts. The sync
 #   CronJob clones into <PVC>/vault and stages into <PVC>/staging, so both
 #   mounts need their subPath there; the package had it on the PVC volume
@@ -14,16 +14,24 @@
 #   from the container env.
 #
 # stage-glue sidecar (write path): same image, second mcpo on :8001 wrapping
-# the stage_write glue (ConfigMap-mounted FastMCP server; no image rebuild).
-# It never mounts /vault — its only vault access is its own clone on the RW
-# /staging mount — and it is the ONLY container that mounts the Forgejo
-# token. Two separate tool servers = two separate toggles in Open WebUI, so
-# write access is granted per chat, deliberately.
+# the park glue (ConfigMap-mounted FastMCP server; no image rebuild).
+# park = push + ensure-open-PR via the Forgejo REST API; it never merges
+# and never pushes main (ratify is a human act). It never mounts /vault -
+# its only repo access is its own clone on the RW /staging mount - and it
+# is the ONLY container that mounts the Forgejo token (git push + PR
+# create). Two separate tool servers = two separate toggles in Open WebUI,
+# so write access is granted per chat, deliberately.
 #
-# v0.2.0 bump (2026-10-28): v0.1.0 + git binary only — the stage-glue
+# Fresh-PVC order dependency (reinstall): the subPath mounts (vault/,
+# staging/) fail LOUDLY until the first vault-sync run has created them on
+# the volume. Deliberate: an empty read mirror must not serve silently.
+# Bootstrap: kubectl create job --from=cronjob/vault-sync -n broker
+# vault-sync-manual, then the pods come up.
+#
+# v0.2.0 bump (2026-10-28): v0.1.0 + git binary only - the stage-glue
 # shells out to git; v0.1.0 shipped without it (Errno 2, caught live in the
 # first stage_write smoke). No mcpo/ptdgrp/lock changes; license-diff gate
-# not triggered. Merge ONLY after v0.2.0 is pushed to the registry —
+# not triggered. Merge ONLY after v0.2.0 is pushed to the registry -
 # Recreate kills the old pod before pulling the new image.
 apiVersion: apps/v1
 kind: Deployment
@@ -46,7 +54,7 @@ spec:
     spec:
       automountServiceAccountToken: false   # pod needs no API access
       securityContext:
-        runAsNonRoot: true          # Stage-A A19: root bypasses DAC — this is the ro-enforcement knob
+        runAsNonRoot: true          # Stage-A A19: root bypasses DAC - this is the ro-enforcement knob
         runAsUser: 1000             # node user in the image
         runAsGroup: 1000
         fsGroup: 1000
@@ -63,7 +71,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-          # K8s expands $(VAR) from env into args (after Flux envsubst rendered $$ → $).
+          # K8s expands $(VAR) from env into args (after Flux envsubst rendered $$ to $).
           args:
             - --host
             - 0.0.0.0
@@ -114,7 +122,7 @@ spec:
               readOnly: true      # ptdgrp write tools fail closed at the filesystem
               subPath: vault      # repo lives at <PVC>/vault (sync clones into it)
             - name: staging
-              mountPath: /staging  # RW worktree for the staging glue; NOT exposed to MCP tools
+              mountPath: /staging  # RW worktree for the park glue; NOT exposed to MCP tools
               subPath: staging
             - name: tmp
               mountPath: /tmp
@@ -149,6 +157,8 @@ spec:
               value: "kleinar"
             - name: VAULT_REPO
               value: "pkm"
+            - name: STAGE_BRANCH_PREFIX
+              value: "park"
             - name: HOME
               value: /tmp
           ports:
