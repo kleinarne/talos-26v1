@@ -1,17 +1,22 @@
-# Vault sync — recurring fast-forward pull + (first run) initial clone.
-# The broker mounts the result read-only, so this CronJob is the only writer
-# of /vault content via git.
+# Vault sync - recurring mirror refresh: fetch + ff-only merge of Core
+# main. The broker mounts the result read-only, so this CronJob is the
+# only writer of /vault content via git.
 #
-# First/one-off run during the burst:
+# Schedule tightened hourly :23 -> */10 (2026-10-31): the old cadence
+# left the read path stale for up to an hour after a ratify (merge).
+# Recurring runs are seconds-long fetch+ff, so the nightly backup window
+# (00:25-01:01) is not a concern for them; the one long action, the
+# initial clone, stays a deliberate manual bootstrap step:
 #   kubectl create job --from=cronjob/vault-sync -n broker vault-sync-manual
+# Run exactly that once after the namespace reinstall (fresh PVC), before
+# relying on the read port.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: vault-sync
   namespace: broker
 spec:
-  # :23 avoids the cluster's nightly backup window minutes (00:25-01:01).
-  schedule: "23 * * * *"
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
@@ -44,6 +49,7 @@ spec:
                 - name: VAULT_OWNER
                   value: "kleinar"
                 - name: VAULT_REPO
+                  # Explicit target: the fresh Core repo (kleinar/pkm).
                   value: "pkm"
                 - name: HOME
                   value: /tmp
