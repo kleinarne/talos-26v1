@@ -54,8 +54,14 @@ spec:
 
     image:
       repository: ghcr.io/open-webui/open-webui
-      # Empty tag = chart appVersion (0.12.0 at chart 17.0.0). Renovate-pinnable.
-      tag: ""
+      # Pinned 0.12.5 (2026-10-29 security release — upstream advises
+      # updating all deployments, CVEs pending publication). Empty tag =
+      # chart appVersion, which stays 0.12.0 until the chart is re-vendored;
+      # no stable 0.12.5 chart exists yet (upstream chart main = 17.4.0 /
+      # appVersion 0.12.4, published index still dev-build churn), so the
+      # image is pinned past the vendored chart. Renovate now tracks the
+      # pin for future bumps.
+      tag: "0.12.5"
       pullPolicy: IfNotPresent
 
     persistence:
