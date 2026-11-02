@@ -1,0 +1,19 @@
+# Gateway Service - ClusterIP only, same egress-only posture as
+# broker-svc. Open WebUI (MCP client) wires
+# http://gateway-svc.broker.svc.cluster.local:3000/mcp against it.
+# No ingress: the WAN leg is a separate, later step.
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-svc
+  namespace: broker
+  labels:
+    app: broker-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: broker-gateway
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

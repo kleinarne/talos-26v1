@@ -11,3 +11,6 @@ resources:
   - 41-broker-service.yaml
   - 42-stage-glue-configmap.yaml
   - 43-readyz-configmap.yaml
+  - 45-gateway-config.secret.yaml
+  - 50-gateway-deployment.yaml
+  - 51-gateway-service.yaml
