@@ -1,0 +1,176 @@
+# agentgateway front for the broker: ONE spec-compliant MCP
+# endpoint (Streamable HTTP at /mcp, legacy SSE also served)
+# multiplexing the two existing stdio tool servers - vault (read
+# tools) and park (the stage glue) - with per-key tool filtering.
+# Sits ALONGSIDE the mcpo broker (Deployment broker, Service
+# broker-svc): mcpo serves OpenAPI REST, not MCP - verified live
+# against the running cluster (initialize 404s on /mcp, /sse,
+# /messages/ and /; /openapi.json lists plain REST routes), so
+# MCP-native clients need this front. Egress-only like broker-svc:
+# ClusterIP, no ingress, reachable only from Open WebUI (the WAN leg
+# is a separate later step, out of scope here).
+#
+# Image broker-gateway:v0.1.0: broker-mcp:v0.2.0 + the agentgateway
+# v1.7.0 static binary copied on top (Dockerfile in the PR). Same
+# contents as the broker image plus one Rust binary - python, git, the
+# pinned mcp SDK, obsidian-vault-mcp and the glue runtime are reused
+# as-is; both stdio targets resolve in-image. Merge ONLY after the
+# image is pushed to the registry (the v0.2.0 ordering rule: never let
+# a rollout chase a missing tag).
+#
+# Mounts mirror the broker pod exactly:
+# - /vault RO subPath vault: the READ tool server serves the synced
+#   mirror; edit tools fail closed at the filesystem.
+# - /staging RW subPath staging, but with STAGING_DIR=/staging/ag
+#   (config in 45): the park subprocess keeps its OWN clone + lock
+#   under /staging/ag - disjoint from the broker sidecar's
+#   /staging/vault-write. No shared state between the write paths.
+# - /secrets: the Forgejo token, read at runtime by the park glue
+#   subprocess only. The gateway itself never touches it.
+# - glue (42) and readyz (43) ConfigMaps reused byte-identical.
+#
+# Readiness: the same exec readyz as the broker READ container. The
+# gateway multiplexes the READ tools, so the empty-mirror invariant
+# must gate THIS pod too (kubelet creates missing subPath dirs; an
+# empty mirror must not serve silently). The write path stays
+# self-initializing - its clone is created lazily by the first park,
+# so readyz deliberately does NOT gate on it (the same deadlock
+# reasoning as the 2026-11-01 sidecar review: a data-gate on the lazy
+# clone would block the first park from ever arriving, because a
+# NotReady gateway serves nothing at all).
+#
+# Auth: two static keys (role metadata desk/connector), CEL allow-list
+# default-deny, unauthorized tools filtered out of tools/list; rules
+# and rationale in 45.
+#
+# stdio targets: agentgateway spawns the subprocesses. If a target
+# fails to start, initialize fails for the whole multiplexed backend -
+# fail-loud, accepted (a silently half-multiplexed endpoint would be
+# worse).
+#
+# Zero-dollar policy: the only dollars below are the two declared
+# postBuild vars in hostAliases (as in 40) - Flux strict post-build
+# envsubst parses every dollar in the rendered set.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker-gateway
+  namespace: broker
+  labels:
+    app: broker-gateway
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # single replica beside the broker pod (RWX PVC allows it); two gateways would double-serve
+  selector:
+    matchLabels:
+      app: broker-gateway
+  template:
+    metadata:
+      labels:
+        app: broker-gateway
+    spec:
+      automountServiceAccountToken: false   # no API access needed
+      hostAliases:
+        - ip: ${NGINX_INTERNAL_IP}
+          hostnames:
+            - git.${DOMAIN_0}
+      volumes:
+        - name: vault
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: staging
+          persistentVolumeClaim:
+            claimName: vault-clone
+        - name: secrets
+          secret:
+            secretName: broker-secrets
+        - name: glue
+          configMap:
+            name: stage-glue-script
+        - name: readyz
+          configMap:
+            name: broker-readyz
+        - name: gateway-config
+          secret:
+            secretName: gateway-config
+        - name: tmp
+          emptyDir: {}
+        - name: data
+          emptyDir: {}   # agentgateway sqlite state; pod-local, rebuilt from config on restart
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: forgejo-registry-pull
+      containers:
+        - name: gateway
+          image: git.arneklein.net/kleinar/broker-gateway:v0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          args:
+            - -f
+            - /config/config.yaml
+          env:
+            - name: READYZ_REPO
+              value: /vault
+            - name: READYZ_TMP
+              value: /tmp
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            exec:
+              command: ["python", "/readyz/readyz.py"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+            timeoutSeconds: 5
+          livenessProbe:
+            # tcpSocket, not httpGet: no trivially-GETtable health path
+            # is confirmed on the data port. Loopback admin UI (15000)
+            # and metrics (15020) stay inside the container on purpose.
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: vault
+              mountPath: /vault
+              readOnly: true     # read tools serve; edit tools fail closed at the FS
+              subPath: vault
+            - name: staging
+              mountPath: /staging   # RW: gateway glue workspace under /staging/ag (see 45)
+              subPath: staging
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+            - name: gateway-config
+              mountPath: /config
+              readOnly: true
+            - name: glue
+              mountPath: /glue
+              readOnly: true
+            - name: readyz
+              mountPath: /readyz
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: data
+              mountPath: /data
