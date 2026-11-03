@@ -61,7 +61,7 @@ spec:
       # appVersion 0.12.4, published index still dev-build churn), so the
       # image is pinned past the vendored chart. Renovate now tracks the
       # pin for future bumps.
-      tag: "0.12.5"
+      tag: "v0.13.0"
       pullPolicy: IfNotPresent
 
     persistence:
