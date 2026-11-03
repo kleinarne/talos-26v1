@@ -180,7 +180,7 @@ image:
     repository: ghcr.io/open-webui/open-webui
     # -- Open WebUI image tag (Open WebUI image tags can be found here: https://github.com/open-webui/open-webui)
     # @section -- Image configuration
-    tag: '@sha256:0b399a8ba34558e181d316750455f2a95376a38cd60a61b9c942e138898944bd'
+    tag: '@sha256:975e3965dcf5832804d2f77e167920794757027c5a2046917d42023d75fac431'
     # -- Open WebUI image pull policy
     # @section -- Image configuration
     pullPolicy: IfNotPresent
