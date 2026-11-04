@@ -93,6 +93,15 @@ spec:
       # nginx-internal serves the *.<domain> wildcard LE cert, so TLS
       # validates for the pinned name. The internal ingress lives with
       # the Forgejo app (internal-ingress.yaml).
+      # DNS-side consequence of the same-host internal ingress
+      # (2026-11-04): blocky k8s-gateway answers git.<domain> with
+      # BOTH LB VIPs; blocky customDNS now pins the name to the
+      # external VIP for DNS clients, because SSH :22 exists only
+      # there (see core/blocky). This hostAliases pin is unaffected -
+      # pods bypass DNS. CLEANUP: when the internal ingress host is
+      # renamed to a dedicated internal name, update this entry and
+      # the git.<domain> URLs in the glue (42) and sync.sh (30), then
+      # drop the blocky customDNS pin with it.
       hostAliases:
         - ip: ${NGINX_INTERNAL_IP}
           hostnames:
