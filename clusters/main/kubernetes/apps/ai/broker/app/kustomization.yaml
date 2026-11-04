@@ -14,3 +14,6 @@ resources:
   - 45-gateway-config.secret.yaml
   - 50-gateway-deployment.yaml
   - 51-gateway-service.yaml
+  - 60-cloudflared.yaml
+  - 60-cloudflared-token.secret.yaml
+  - 61-networkpolicy.yaml
