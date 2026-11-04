@@ -43,6 +43,24 @@ spec:
         integrations:
           metallb:
             enabled: true
+    # git.<domain> is an Ingress host on BOTH ingress classes - external
+    # (forgejo helm-release) and internal (forgejo internal-ingress.yaml,
+    # deliberate: the broker in-cluster TLS write path needs it) - so
+    # the k8s-gateway below answers the name with BOTH LB VIPs,
+    # round-robin. Only the external VIP carries the nginx TCP-22 proxy
+    # to forgejo-ssh (values.tcp), so an SSH client that drew the
+    # internal VIP sent its SYN into a silent drop: ~127s TCP timeout,
+    # observed 2026-11-04 (the "bitwarden popup delay" workstation
+    # incident). customDNS outranks the k8s-gateway for the exact host,
+    # pinning the name to the VIP that serves both https and :22.
+    # Broker pods are unaffected - their hostAliases pin the name
+    # directly (pods bypass DNS). CLEANUP: when the internal ingress
+    # host is renamed to a dedicated internal name, drop this pin.
+    customDNS:
+      mapping:
+        - domain: "git.${DOMAIN_0}"
+          dnsserver: ${NGINX_EXTERNAL_IP}
+
     k8sgateway:
       # -- list of processed domains
       domains:

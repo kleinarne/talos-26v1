@@ -30,6 +30,16 @@
 #
 # Deliberately NOT added to any Cloudflare-tunnel mapping (nginx-external
 # class owns the public surface; internal is LAN/WG + in-cluster only).
+#
+# DNS consequence (2026-11-04): publishing the SAME host on both ingress
+# classes makes blocky k8s-gateway round-robin BOTH LB VIPs for
+# git.<domain>. Only the external VIP carries the TCP-22 proxy to
+# forgejo-ssh, so SSH clients that drew this VIP hit a silent drop
+# (~127s TCP timeout). Interim fix: blocky customDNS pins
+# git.<domain> to the external VIP (core/blocky helm-release).
+# Clean end state: a dedicated internal hostname here + hostAliases
+# and URL updates in the broker; then the pin goes. Cleanup notes
+# live in the broker Deployment and the blocky helm-release.
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
