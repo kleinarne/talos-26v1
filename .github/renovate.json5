@@ -76,5 +76,12 @@
   ],
   "schedule": ["after 11pm and before 6am"]
     }
+    ,
+    {
+      "description": ["Broker WAN connector (mcp.arneklein.net): image changes are manual boundary events."],
+      "matchPackageNames": ["cloudflare/cloudflared"],
+      "matchFileNames": ["clusters/main/kubernetes/apps/ai/broker/**"],
+      "automerge": false
+    }
   ]
 }
