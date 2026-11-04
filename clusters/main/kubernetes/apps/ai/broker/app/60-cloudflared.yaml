@@ -3,8 +3,9 @@
 #   mcp.arneklein.net -> http://gateway-svc.broker.svc.cluster.local:3000
 # lives in the Cloudflare dashboard, OUT of git custody — recorded as topology
 # inventory in the ADR-010 acceptance (same custody status as the API keys).
-# STAGED (ruling 2026-11-04): NOT in kustomization.yaml resources until the
-# real tunnel token exists — a placeholder token would CrashLoopBackOff.
+# Joined kustomization resources 2026-11-04, when the real connector token
+# landed (the interim staging — commit history — was to avoid CrashLoopBackOff
+# under a placeholder token).
 ---
 apiVersion: apps/v1
 kind: Deployment
