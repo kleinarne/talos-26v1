@@ -14,3 +14,6 @@ resources:
   - 45-gateway-config.secret.yaml
   - 50-gateway-deployment.yaml
   - 51-gateway-service.yaml
+  - 61-networkpolicy.yaml
+  # 60-cloudflared.yaml + 60-cloudflared-token.secret.yaml: STAGED, join with
+  # the real tunnel token (ruling 2026-11-04)

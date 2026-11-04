@@ -1,0 +1,28 @@
+# 61-networkpolicy.yaml — ADR-010's "NetworkPolicy on the gateway", executed.
+# Gateway :3000 ingress allowed ONLY from:
+#   - the broker app's own cloudflared pods (WAN leg; 60, staged until token)
+#   - the open-webui namespace (desk leg)
+# First policy on these pods: all other sources go dark by default.
+# After apply, verify the desk leg still reaches the gateway and that
+# kubectl port-forward smoke paths still work.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-ingress
+  namespace: broker
+spec:
+  podSelector:
+    matchLabels:
+      app: broker-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: cloudflared
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: open-webui
