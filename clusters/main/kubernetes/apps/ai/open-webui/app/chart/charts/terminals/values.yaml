@@ -85,7 +85,7 @@ operator:
 orchestrator:
     image:
         repository: ghcr.io/open-webui/terminals
-        tag: latest@sha256:c4a1396fb56b88007ae96b1aafd88f9243b0d69178a11f703f9970e684379ede
+        tag: latest@sha256:6132c0d971edb40d65808c6b204d45dfd51f6a3686fbfbec3c2c677531063718
         pullPolicy: IfNotPresent
     replicaCount: 1
     service:
