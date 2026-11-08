@@ -1,10 +1,12 @@
 # Runbook: Host board swap + dedicated NVMe pool for the cluster VM
 
-> **Status: EXECUTED 2026-11-08 — window closed.** Hardware models are
-> published per the ADR-002 redaction rule (models are publishable
-> context, not secrets; device serial numbers are not). The execution
-> report below records the session-verified actuals only; phases not
-> covered there are documented up to the level verified in-session.
+> **Status: PARTIALLY EXECUTED 2026-11-08 — Phases A–B done, Phase C/D
+> open.** The board swap and TrueNAS bring-up ran (execution report
+> below, verified actuals only). The etcd migration itself — Phase C
+> (tank-vm pool + VM rebuild on the NVMe) — was NOT executed: the
+> spare NVMe is still empty. Hardware models are published per the
+> ADR-002 redaction rule (models are publishable context, not
+> secrets; device serial numbers are not).
 
 ## Goal
 
@@ -157,6 +159,14 @@ the pool-import and rebuild steps are rehearsed).
 Scope: only what was verified live during and after the window is
 recorded here. Timings and pre-console-fix bench actuals are left to
 the operator's own notes.
+
+**Phase C/D status: NOT executed.** tank-vm was not created, the VM
+was not rebuilt, and the ADR-001/ADR-004 acceptance tests have not
+run — the spare NVMe is still empty. The structural fix this runbook
+exists for (etcd fsync isolation per ADR-004) is still pending; only
+its hardware prerequisite is now in place. The 2026-11-08 window
+covered the board swap, bring-up, console fix, and GPU passthrough —
+not the migration.
 
 - Console fix (in-window correction): the Phase A BIOS law was
   incomplete. With Onboard VGA = Enabled alone, the GPU still became

@@ -1,12 +1,13 @@
 # Disaster recovery
 
-> **Status: SKELETON — partially rehearsed.** Drafted 2026-10-10 from memory
-> notes; every hardware, storage, and service fact must be verified against
-> the live system. A partial live rehearsal (Phases 1–3 minus the TrueNAS
-> reinstall) ran during the 2026-11-08 board swap
-> (docs/runbooks/board-swap-etcd-isolation.md, Execution report); recovery
-> from a bare reinstall remains unexercised. Execute a full rehearsal
-> recovery on a spare disk/VM before relying on this document. After each real or rehearsal recovery, update
+> **Status: SKELETON — almost entirely unrehearsed.** Drafted 2026-10-10 from
+> memory notes; every hardware, storage, and service fact must be verified
+> against the live system. The 2026-11-08 board swap exercised only pool
+> import on the existing install; VM rebuild, cluster bootstrap, and data
+> restore (the runbook's Phase C/D —
+> docs/runbooks/board-swap-etcd-isolation.md, Execution report) were NOT
+> executed and remain theory. Execute a full rehearsal recovery on a spare
+> disk/VM before relying on this document. After each real or rehearsal recovery, update
 > this file from what actually happened (see RECOVERY-REPORT pattern in
 > dwoitzik/homelab-infrastructure).
 
