@@ -116,6 +116,21 @@ only to commits:
   and are not schedule changes (observed 2026-10-29: 03:07 → 02:07
   across the DST end at an unchanged 01:07 UTC schedule).
 
+## Hardware-change verification
+
+- PCI addresses are mainboard-topology facts, not device facts: a
+  mainboard swap silently orphans every setting keyed by PCI address.
+  Observed 2026-11-08: the SCALE GPU isolation still named the old
+  board's GPU address (0000:27:00.0) after the swap — a stale vfio
+  binding failing silently at every boot. After any hardware swap,
+  re-read address-keyed settings against live enumeration
+  (`lspci -nn`) before trusting them.
+- Host console routing with a dedicated GPU installed is decided by
+  TWO BIOS settings, not one: Onboard VGA = Enabled AND Primary
+  Graphics Adapter = Onboard. The first without the second leaves the
+  console on the GPU and the BMC KVM black (observed 2026-11-08;
+  corrected in docs/runbooks/board-swap-etcd-isolation.md).
+
 ## PKM vault seam
 
 - Tasks touching the PKM vault or its hosting follow vault rules

@@ -1,10 +1,10 @@
 # Runbook: Host board swap + dedicated NVMe pool for the cluster VM
 
-> **Status: DRAFT — never executed.** Hardware models are published per
-> the ADR-002 redaction rule (models are publishable context, not
-> secrets; device serial numbers are not). After execution, update this
-> runbook and DISASTER-RECOVERY.md from what actually happened
-> (RECOVERY-REPORT pattern).
+> **Status: EXECUTED 2026-11-08 — window closed.** Hardware models are
+> published per the ADR-002 redaction rule (models are publishable
+> context, not secrets; device serial numbers are not). The execution
+> report below records the session-verified actuals only; phases not
+> covered there are documented up to the level verified in-session.
 
 ## Goal
 
@@ -99,10 +99,13 @@ the pool-import and rebuild steps are rehearsed).
 - [ ] First boot IS the POST test: verify POST, all 4 DIMMs detected,
       ECC active in BIOS — fails → revert to the old board (rollback
       below) and abort the window
-- [ ] In BIOS: set boot device order; set BIOS → Advanced → Chipset →
-      Onboard VGA = Enabled so the AST2500 KVM keeps video with the
-      GPU installed (otherwise the GPU auto-becomes primary video and
-      the KVM shows a black screen)
+- [x] In BIOS: set boot device order. KVM video needs BOTH settings
+      (corrected after execution — Onboard VGA alone was NOT enough,
+      observed 2026-11-08): BIOS → Advanced → Chipset → Onboard VGA =
+      Enabled, AND Primary Graphics Adapter = Onboard. With only
+      Onboard VGA enabled, the GPU still became the primary console and
+      the KVM stayed black until Primary Graphics Adapter = Onboard
+      was set
 - [ ] Expect the onboard NICs to differ from the previous board (dual
       Intel i210 GbE + dedicated IPMI LAN port) — interface names WILL
       change in TrueNAS (Phase B)
@@ -149,6 +152,46 @@ the pool-import and rebuild steps are rehearsed).
 - [ ] NVMe SMART monitoring added to Grafana (Percentage Used,
       Media and Data Integrity Errors)
 
+## Execution report (2026-11-08 — verified actuals)
+
+Scope: only what was verified live during and after the window is
+recorded here. Timings and pre-console-fix bench actuals are left to
+the operator's own notes.
+
+- Console fix (in-window correction): the Phase A BIOS law was
+  incomplete. With Onboard VGA = Enabled alone, the GPU still became
+  the primary console and the AST2500 KVM stayed black. Fix: Primary
+  Graphics Adapter = Onboard, verified — KVM shows full POST and
+  console. The Phase A checklist above is corrected accordingly.
+- IOMMU: Enabled in BIOS (AMD CBS → NBIO Common Options) as the
+  prerequisite for GPU passthrough.
+- GPU passthrough: the GTX 1050 Ti (10de:1c82) enumerates on the new
+  board at 10:00.0 (ASPEED at 22:00.0). Isolated in SCALE
+  (isolated_gpu_pci_ids = 0000:10:00.0), host driver vfio-pci
+  confirmed, GPU device attached to the cluster VM, and 10de:1c82
+  verified present inside the node (driverless — the NVIDIA
+  driver/extension work is post-window; patches/nvidia.yaml is an
+  inert leftover from a previous attempt and the seed for it).
+- Residue found and cleared: SCALE GPU isolation carried a stale entry
+  from the old board (0000:27:00.0) that silently survived the swap.
+  Lesson recorded in docs/operating-floor.md (hardware-change
+  verification).
+- GPU audio function 10:00.1 (HDMI audio) stays host-bound — SCALE
+  isolation binds the GPU function only. Harmless for headless
+  transcoding; if a VM boot ever fails with the GPU attached, isolate
+  or pass 10:00.1 as well.
+- TrueNAS updated in-window 25.10.7 → 25.10.8, sharing its single
+  reboot with the GPU attach.
+- VM autostart stays on (DR-correct steady state — the stack
+  self-recovers after host reboots).
+- BMC hardening: default admin password changed, custom admin account
+  created, BMC moved to the management VLAN (switch-side access port;
+  BMC-side VLAN tagging deliberately off — a BMC factory reset wipes
+  BMC-side VLAN config and would orphan an untagged BMC on a trunk
+  port). Cross-VLAN firewall rule pending.
+- Cluster verified healthy after the final boot (DNS answers via
+  blocky; node sees the GPU).
+
 ## Reference: current VM config (midclt vm.query, 2026-10-10)
 
 VM `talos_cluster` (id 6), RUNNING, autostart on. 32 GB RAM, 1 socket ×
@@ -162,6 +205,10 @@ SPICE display bound to 0.0.0.0 with password — change the bind to
 password and NIC MAC deliberately not recorded (ADR-002 redaction rule;
 the disk `serial` in the VM config is a libvirt-emulated value, not a
 hardware identifier).
+
+Update 2026-11-08: a GPU device (isolated 0000:10:00.0, GTX 1050 Ti)
+is attached to the VM; see the Execution report. Config otherwise as
+recorded above.
 
 ## Reference: X470D4U PCIe / M.2 layout (per ADR-004 Amendment)
 
