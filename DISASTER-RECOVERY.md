@@ -1,9 +1,13 @@
 # Disaster recovery
 
-> **Status: SKELETON — never executed.** Drafted 2026-10-10 from memory
-> notes; every hardware, storage, and service fact must be verified against
-> the live system. Execute a rehearsal recovery on a spare disk/VM before
-> relying on this document. After each real or rehearsal recovery, update
+> **Status: SKELETON — almost entirely unrehearsed.** Drafted 2026-10-10 from
+> memory notes; every hardware, storage, and service fact must be verified
+> against the live system. The 2026-11-08 board swap exercised only pool
+> import on the existing install; VM rebuild, cluster bootstrap, and data
+> restore (the runbook's Phase C/D —
+> docs/runbooks/board-swap-etcd-isolation.md, Execution report) were NOT
+> executed and remain theory. Execute a full rehearsal recovery on a spare
+> disk/VM before relying on this document. After each real or rehearsal recovery, update
 > this file from what actually happened (see RECOVERY-REPORT pattern in
 > dwoitzik/homelab-infrastructure).
 
@@ -39,7 +43,7 @@ If these are gone, this document cannot help:
 - [ ] Physical access to the TrueNAS host
 
 ### Phase 1 — Hardware and TrueNAS
-- [ ] Reinstall TrueNAS SCALE 25.10.7 **[VERIFY: use an installer image you
+- [ ] Reinstall TrueNAS SCALE 25.10.8 **[VERIFY: use an installer image you
       actually want to recover to]**
 - [ ] Import ZFS pools (do not re-create; import preserves datasets and
       Garage backup data)
