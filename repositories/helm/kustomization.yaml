@@ -8,6 +8,7 @@ resources:
   - cloudnative-pg.yaml
   - forgejo.yaml
   - home-ops-mirror.yaml
+  - ingress-nginx.yaml
   - jetstack.yaml
   - kustomization.yaml
   - metallb.yaml
