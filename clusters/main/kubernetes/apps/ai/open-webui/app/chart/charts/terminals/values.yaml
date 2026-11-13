@@ -37,7 +37,7 @@ terminalDefaults:
 operator:
     image:
         repository: ghcr.io/open-webui/terminals-operator
-        tag: latest@sha256:66315a353c29b06aaa636ba250bfe75712c375733b75237af84140b5843ba585
+        tag: latest@sha256:93a9d245cf556374a3afef17ccfa8fc12edd16b7c0f7747a2d91fa9af9f8589d
         pullPolicy: IfNotPresent
     replicaCount: 1
     resources:
