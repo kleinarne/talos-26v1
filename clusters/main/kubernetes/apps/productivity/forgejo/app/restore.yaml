@@ -1,0 +1,45 @@
+---
+# Repo-managed restore path for the Forgejo data PVC.
+#
+# DR-audit finding 2026-11-12 (restore-coverage review): backup.yaml covers
+# backup, but no ReplicationDestination existed -- restore coverage was the
+# gap (cluster-repo ADR-003: PKM vault continuity rides on this instance).
+#
+# Inert by construction: `paused: true` keeps the object from syncing, so
+# committing this against the running cluster never fires an in-place
+# overwrite of live data. A restore window flips `paused: false` via a repo
+# commit (house practice: repo commits only -- Flux reverts out-of-band
+# kubectl patches on the next reconcile), following the
+# install -> stop -> restore -> verify -> unsuspend-writers sequence in
+# docs/forgejo-recovery.md.
+#
+# A manual trigger fires once per value: a failed sync does not retry on
+# its own -- change trigger.manual to a fresh value to re-fire.
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationDestination
+metadata:
+  name: forgejo-restore
+  namespace: forgejo
+spec:
+  paused: true
+  trigger:
+    manual: restore-once
+  # In-place restore into the chart-created PVC. The official forgejo chart
+  # inherits the upstream gitea naming: gitea-shared-storage, NOT
+  # forgejo-shared (verified 2026-10-11).
+  destinationPVC: gitea-shared-storage
+  restic:
+    # Same Secret as the source (backup.yaml).
+    repository: forgejo-backup-restic
+    # Direct: with destinationPVC the mover writes straight into the
+    # existing volume; no snapshot is created. cacheStorageClassName and
+    # capacity are deliberately NOT set: per the VolSync docs they only
+    # apply when VolSync provisions the destination volume -- with
+    # destinationPVC they are ignored.
+    copyMethod: Direct
+    # Rootless chart: mover must read/write as uid/gid 1000
+    # (verified 2026-10-11).
+    moverSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
