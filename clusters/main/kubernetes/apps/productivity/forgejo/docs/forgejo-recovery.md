@@ -4,6 +4,11 @@ Backup is a standalone VolSync`ReplicationSource`` (see `app/backup.yaml`) — t
 official Forgejo chart has no TrueCharts-style cnpg/volsync integration, so both
 backup and recovery are explicit.
 
+The restore path is repo-managed since 2026-11-14: `app/restore.yaml` commits
+a paused `ReplicationDestination` (DR-audit finding 2026-11-12:
+ReplicationSource only, no destination — restore coverage, not backup
+coverage, was the gap).
+
 ## What's backed up
 
 - `gitea-shared-storage` PVC (repos, SQLite DB, LFS, config) via restic.
@@ -29,7 +34,9 @@ backup and recovery are explicit.
 
 **1. Stop Forgejo** (suspend HelmRelease or `kubectl scale sts -n forgejo --replicas=0`).
 
-**2. Apply a one-shot ReplicationDestination:**
+**2. Unpause the committed ReplicationDestination** (`app/restore.yaml`; committed
+`paused: true`, so it is inert on a running cluster and a live reconcile can
+never fire an in-place overwrite of prod data):
 
 ```yaml
 apiVersion: volsync.backube/v1alpha1
@@ -38,6 +45,7 @@ metadata:
   name: forgejo-restore
   namespace: forgejo
 spec:
+  paused: true          # flip to false via a repo commit for the restore window
   trigger:
     manual: restore-once
   destinationPVC: gitea-shared-storage    # overwrite existing PVC in place
@@ -46,13 +54,27 @@ spec:
     # Direct: with destinationPVC the mover writes straight into the
     # existing volume; no snapshot is created (per the VolSync docs).
     copyMethod: Direct
-    cacheStorageClassName: <storage-class>
-    capacity: 10Gi
     moverSecurityContext:
       runAsUser: 1000
       runAsGroup: 1000
       fsGroup: 1000
 ```
+
+Notes (VolSync docs, verified 2026-11-14):
+
+- `cacheStorageClassName` / `capacity` only apply when VolSync provisions the
+  destination volume; with `destinationPVC` they are ignored — the earlier
+  draft's `capacity: 10Gi` here was dead config. The restic metadata cache
+  defaults to 1 Gi on the destination's storage class.
+- A manual trigger fires once per value. If the sync does not start after
+  unpausing, set `trigger.manual` to a fresh value (e.g. `restore-once-2`);
+  a failed sync never retries on its own.
+- Pause the backup writer for the window in the same motion (`paused: true`
+  on the ReplicationSource in `app/backup.yaml`) and unsuspend it only after
+  the restore is verified — the 2026-11-12 backup-writer suspend rule
+  (install → restore → verify → unsuspend).
+- House practice is repo commits only: Flux reverts out-of-band `kubectl
+  patch` on the next reconcile, so flip `paused` via commit, not patch.
 
 **3. Pick a point in time** if not the latest snapshot:
 
@@ -62,8 +84,10 @@ spec:
 ```
 
 **4. When the sync completes** (`.status.lastSyncTime` set and the
-`Synchronizing` condition False): delete the ReplicationDestination,
-unsuspend Forgejo, and let it reconcile.
+`Synchronizing` condition False): flip `paused` back to `true` and unsuspend
+the backup writer in the steady-state commit, unsuspend Forgejo, and let it
+reconcile. The committed ReplicationDestination stays — inert while paused,
+and the consumed manual trigger does not re-fire.
 
 ## Recovery to a fresh volume (safer)
 
@@ -178,7 +202,7 @@ on-disk layout above).
 
 1. Deploy volsync first (`system/volsync`).
 2. Deploy Forgejo with an empty PVC.
-3. Run the in-place restore (above) into the fresh PVC.
+3. Run the in-place restore (above — unpause `app/restore.yaml`) into the fresh PVC.
 4. Confirm web UI + a repo pull before declaring victory.
 
 ## Preconditions to verify after first deploy
