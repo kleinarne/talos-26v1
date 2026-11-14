@@ -47,8 +47,15 @@ spec:
             credentials: garage
             dest:
               enabled: true
+            # Window guard (2026-11-12 ruling, applied 2026-11-14): writer
+            # off in the recovery position -- TC volsync values expose no
+            # pause switch, so disable the source entirely until the
+            # restore is verified (the steady-state motion re-enables it).
+            # The rendered TC source is schedule-triggered (no fire at
+            # creation -- verified from the TC common template), so this
+            # is belt-and-braces, not an empty-snapshot patch.
             src:
-              enabled: true
+              enabled: false
               trigger:
                 schedule: 32 0 * * *
     service:
