@@ -36,20 +36,26 @@ spec:
     persistence:
       data:
         volsync:
-#          - name: backup
-#            type: restic
-#            credentials: garage-recovery
-#            dest:
-#              enabled: true
-#            src:
-#              enabled: false
+          # DR restore coverage (2026-11-12 audit): dest enabled for the
+          # restore window (restore-then-start). Window-only: a dest applied
+          # against the live cluster fires an in-place restore over prod data.
+          # The 2026-09-14 restore-day leftover (garage-recovery credentials,
+          # `-redir` bucket) is dropped -- the house pattern restores from
+          # the regular garage bucket.
           - name: backup
             type: restic
             credentials: garage
             dest:
-              enabled: false
-            src:
               enabled: true
+            # Window guard (2026-11-12 ruling, applied 2026-11-14): writer
+            # off in the recovery position -- TC volsync values expose no
+            # pause switch, so disable the source entirely until the
+            # restore is verified (the steady-state motion re-enables it).
+            # The rendered TC source is schedule-triggered (no fire at
+            # creation -- verified from the TC common template), so this
+            # is belt-and-braces, not an empty-snapshot patch.
+            src:
+              enabled: false
               trigger:
                 schedule: 32 0 * * *
     service:
@@ -97,10 +103,3 @@ spec:
         accessKey: ${GARAGE_S3_ACCESSKEY}
         secretKey: ${GARAGE_S3_SECRETKEY}
         encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
-#      garage-recovery:
-#        type: s3
-#        url: ${GARAGE_S3_URL}
-#        bucket: ${GARAGE_S3_BUCKET}-redir
-#        accessKey: ${GARAGE_RECOVERY_S3_ACCESSKEY}
-#        secretKey: ${GARAGE_RECOVERY_S3_SECRETKEY}
-#        encrKey: ${GARAGE_S3_ENCRYPTIONKEY}

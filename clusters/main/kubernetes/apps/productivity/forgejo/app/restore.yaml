@@ -21,7 +21,9 @@ metadata:
   name: forgejo-restore
   namespace: forgejo
 spec:
-  paused: true
+  # Recovery position (window PR): unpaused for the restore window --
+  # flip back to true in the steady-state motion after verification.
+  paused: false
   trigger:
     manual: restore-once
   # In-place restore into the chart-created PVC. The official forgejo chart

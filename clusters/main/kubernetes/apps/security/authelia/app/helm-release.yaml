@@ -85,6 +85,9 @@ spec:
     cnpg:
       main:
         enabled: true
+        # DR restore coverage (2026-11-12 audit): recovery bootstrap from the
+        # Garage object store on a fresh build. Window-only (recovery PR).
+        mode: recovery
         cluster:
           instances: 1
           resources:
@@ -99,10 +102,15 @@ spec:
             - name: daily-backup
               schedule: "0 1 1 * * *"
               backupOwnerReference: self
-              immediate: true
-              suspend: false
+              # Window guards (2026-11-12 ruling): no empty base backup at
+              # cluster creation (immediate fires at creation and poisons
+              # latest-target recovery); writer suspended until the restore
+              # is verified (install -> restore -> verify -> unsuspend).
+              immediate: false
+              suspend: true
         recovery:
-          enabled: false
+          enabled: true
+          credentials: garage
 
     redis:
       enabled: true
