@@ -11,8 +11,7 @@ Accepted
 Nearly every chart on the cluster is TrueCharts; Forgejo is the one
 deliberate exception, installed from the official Forgejo Helm chart.
 Forgejo is also the PKM vault host (ADR-003) — one of the most critical
-workloads on the cluster: not uniquely so, as other charts (e.g.
-vaultwarden) hold data of equal importance.
+workloads on the cluster.
 
 The restore-coverage audit (2026-11-12, DR-rehearsal abort) found that
 Forgejo backs up (VolSync ReplicationSource) but has no restore path:
