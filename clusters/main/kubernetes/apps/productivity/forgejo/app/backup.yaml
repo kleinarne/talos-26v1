@@ -19,6 +19,10 @@ metadata:
   name: forgejo
   namespace: forgejo
 spec:
+  # Window guard (2026-11-12 ruling): writer suspended for the restore
+  # window; unsuspend in the steady-state motion after the restore is
+  # verified (install -> restore -> verify -> unsuspend).
+  paused: true
   # The official forgejo chart inherits the upstream gitea chart's naming:
   # the data PVC is <release>-shared-storage, NOT forgejo-shared.
   # Verified 2026-10-11: kubectl get pvc -n forgejo -> gitea-shared-storage
