@@ -36,18 +36,17 @@ spec:
     persistence:
       data:
         volsync:
-#          - name: backup
-#            type: restic
-#            credentials: garage-recovery
-#            dest:
-#              enabled: true
-#            src:
-#              enabled: false
+          # DR restore coverage (2026-11-12 audit): dest enabled for the
+          # restore window (restore-then-start). Window-only: a dest applied
+          # against the live cluster fires an in-place restore over prod data.
+          # The 2026-09-14 restore-day leftover (garage-recovery credentials,
+          # `-redir` bucket) is dropped -- the house pattern restores from
+          # the regular garage bucket.
           - name: backup
             type: restic
             credentials: garage
             dest:
-              enabled: false
+              enabled: true
             src:
               enabled: true
               trigger:
@@ -97,10 +96,3 @@ spec:
         accessKey: ${GARAGE_S3_ACCESSKEY}
         secretKey: ${GARAGE_S3_SECRETKEY}
         encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
-#      garage-recovery:
-#        type: s3
-#        url: ${GARAGE_S3_URL}
-#        bucket: ${GARAGE_S3_BUCKET}-redir
-#        accessKey: ${GARAGE_RECOVERY_S3_ACCESSKEY}
-#        secretKey: ${GARAGE_RECOVERY_S3_SECRETKEY}
-#        encrKey: ${GARAGE_S3_ENCRYPTIONKEY}
