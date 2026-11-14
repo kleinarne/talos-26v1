@@ -4,7 +4,7 @@ Date: 2026-11-14
 
 ## Status
 
-Proposed — decision ruled in-chat (Arne, 2026-11-14); Accepted on merge.
+Accepted — ruled in-chat by Arne, 2026-11-14.
 
 ## Context
 
