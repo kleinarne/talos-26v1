@@ -1,10 +1,10 @@
-# 9. Forgejo stays on the official Helm chart — the TrueCharts exception is deliberate
+# 9. Forgejo stays on the official Helm chart (the deliberate TrueCharts exception)
 
 Date: 2026-11-14
 
 ## Status
 
-Accepted — ruled in-chat by Arne, 2026-11-14.
+Accepted
 
 ## Context
 
@@ -19,14 +19,14 @@ SQLite + git repos + the vault ride one restic bucket with no
 ReplicationDestination. That gap made migrating Forgejo onto the
 TrueCharts Gitea chart attractive — it would add the house-standard
 backup tooling (VolSync + CNPG recovery) without rolling our own. The
-option was evaluated 2026-11-14 in-session, with the mechanics verified
+option was evaluated 2026-11-14, with the mechanics verified
 against the live TrueCharts chart and the Forgejo image.
 
 ## Decision
 
 - Forgejo stays on the official Forgejo Helm chart. The TrueCharts Gitea
   chart is rejected as a wrapper; revisiting requires a new ADR
-  superseding this one (ADR-000 immutability).
+  superseding this one (ADR-006 supersession rule).
 - The one-chart exception is a design choice, not drift.
 - Forgejo's restore-path gap is closed on the current install
   (repo-managed paused ReplicationDestination, PR #460) — not by chart
