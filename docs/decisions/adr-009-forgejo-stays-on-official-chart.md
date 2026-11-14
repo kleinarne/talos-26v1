@@ -10,8 +10,9 @@ Accepted
 
 Nearly every chart on the cluster is TrueCharts; Forgejo is the one
 deliberate exception, installed from the official Forgejo Helm chart.
-Forgejo is also the PKM vault host (ADR-003) — the highest-blast-radius
-workload on the cluster.
+Forgejo is also the PKM vault host (ADR-003) — one of the most critical
+workloads on the cluster: not uniquely so, as other charts (e.g.
+vaultwarden) hold data of equal importance.
 
 The restore-coverage audit (2026-11-12, DR-rehearsal abort) found that
 Forgejo backs up (VolSync ReplicationSource) but has no restore path:
@@ -65,9 +66,10 @@ Rejected because:
    future Forgejo release may break the wrapper. The end state of that
    path is an ill-fitting wrapper around an unsupported core image,
    forcing a reversal of this exact decision at higher cost.
-3. **Blast radius.** The instance whose continuity is a hard
-   requirement (ADR-003) is the worst candidate for an unsupported
-   configuration.
+3. **Blast radius.** Forgejo's continuity is a hard migration
+   requirement (ADR-003) and it sits in the most critical workload
+   category — an unsupported configuration is a bad fit for any
+   workload in it.
 
 ## Consequences
 
