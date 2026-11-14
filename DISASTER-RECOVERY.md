@@ -62,6 +62,9 @@ If these are gone, this document cannot help:
 
 ### Phase 4 — Data
 - [ ] Restore PVCs via VolSync/Restic from Garage buckets
+- [ ] Forgejo: in-place PVC restore via the repo-managed, paused
+      ReplicationDestination (`apps/productivity/forgejo/app/restore.yaml`;
+      procedure in `apps/productivity/forgejo/docs/forgejo-recovery.md`)
 - [ ] Restore CNPG databases from backups — bootstrap each Cluster in
       recovery mode against the same object store (TC values
       `cnpg.main.mode: recovery` + `recovery.enabled: true`;
